@@ -8,6 +8,7 @@ export default function PlanPage() {
   const [plan, setPlan] = useState<any>(null)
   const [miembros, setMiembros] = useState<any[]>([])
   const [cargando, setCargando] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
   const params = useParams()
   const router = useRouter()
   const supabase = createClient()
@@ -21,6 +22,8 @@ export default function PlanPage() {
         .single()
 
       if (!planData) { router.push('/'); return }
+      const { data: { user } } = await supabase.auth.getUser()
+      setUserId(user?.id || null)
       setPlan(planData)
 
       const { data: miembrosData } = await supabase
@@ -75,13 +78,18 @@ export default function PlanPage() {
           <p className="text-2xl font-medium tracking-widest">{plan.codigo}</p>
         </div>
 
-        <button
-          onClick={() => router.push(`/plan/${params.id}/votar`)}
-          className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
-        >
-          Buscar restaurantes y votar →
-        </button>
-      </div>
-    </main>
+        {userId === plan.creador_id ? (
+          <button
+            onClick={() => router.push(`/plan/${params.id}/votar`)}
+            className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
+          >
+            ¡Todo el grupo está! Empezar votación →
+          </button>
+        ) : (
+          <div className="w-full py-4 rounded-xl border border-dashed border-border text-center">
+            <p className="text-sm text-muted-foreground">⏳ Esperando a que el creador inicie la votación...</p>
+        </div>
+        )}
+    </div></main>
   )
 }

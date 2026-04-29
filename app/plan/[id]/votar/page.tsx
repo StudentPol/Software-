@@ -78,6 +78,10 @@ export default function VotarPage() {
   
       if (votosExistentes && votosExistentes.length >= RESTAURANTES_PRUEBA.length) {
         router.push(`/plan/${params.id}/resultados`)
+      } else {
+        setIndice(0)
+        setVotos([])
+        setTerminado(false)
       }
     }
     comprobarVotos()

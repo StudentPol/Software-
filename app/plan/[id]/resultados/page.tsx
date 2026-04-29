@@ -107,12 +107,21 @@ export default function ResultadosPage() {
         </div>
 
         <div className="flex flex-col gap-3">
-          <button
-            onClick={() => router.push(`/plan/${params.id}/votar`)}
-            className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
-          >
-            Votar de nuevo
-          </button>
+        <button
+          onClick={async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+              await supabase.from('votos')
+                .delete()
+                .eq('plan_id', params.id)
+                .eq('user_id', user.id)
+            }
+            router.push(`/plan/${params.id}/votar`)
+          }}
+          className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
+        >
+          Votar de nuevo
+        </button>
           <button
             onClick={() => router.push('/')}
             className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
