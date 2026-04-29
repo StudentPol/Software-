@@ -25,6 +25,7 @@ export default function CrearPlan() {
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
   const [codigoGenerado, setCodigoGenerado] = useState('')
+  const [planId, setPlanId] = useState('')
   const router = useRouter()
   const supabase = createClient()
 
@@ -62,6 +63,7 @@ export default function CrearPlan() {
     })
 
     setCodigoGenerado(codigo)
+    setPlanId(data.id)
     setCargando(false)
   }
 
@@ -88,7 +90,7 @@ export default function CrearPlan() {
               Copiar código
             </button>
             <button
-              onClick={() => router.push('/')}
+              onClick={() => router.push(`/plan/${planId}`)}
               className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
             >
               Ir al plan →
