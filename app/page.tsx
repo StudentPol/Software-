@@ -19,11 +19,7 @@ export default function Home() {
       if (!user) return
 
       const { data: perfilData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
+        .from('profiles').select('*').eq('id', user.id).single()
       setPerfil(perfilData)
 
       const { data: miembrosData } = await supabase
@@ -31,10 +27,7 @@ export default function Home() {
         .select('plan_id, planes(id, nombre, zona, codigo, created_at)')
         .eq('user_id', user.id)
 
-      const planesActivos = miembrosData
-        ?.map((m: any) => m.planes)
-        .filter(Boolean) || []
-
+      const planesActivos = miembrosData?.map((m: any) => m.planes).filter(Boolean) || []
       setPlanes(planesActivos)
       setCargando(false)
     }
@@ -44,32 +37,18 @@ export default function Home() {
   async function handleEliminar(planId: string) {
     if (!confirm('¿Seguro que quieres eliminar este plan?')) return
     setEliminando(planId)
-  
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-  
-    // Comprobar si eres el creador
-    const { data: plan } = await supabase
-      .from('planes')
-      .select('creador_id')
-      .eq('id', planId)
-      .single()
-  
+    const { data: plan } = await supabase.from('planes').select('creador_id').eq('id', planId).single()
     if (plan?.creador_id === user.id) {
-      // Si eres el creador, eliminar todo el plan
       await supabase.from('votos').delete().eq('plan_id', planId)
       await supabase.from('miembros').delete().eq('plan_id', planId)
       await supabase.from('planes').delete().eq('id', planId)
     } else {
-      // Si no eres el creador, solo salirte del plan
-      await supabase.from('miembros').delete()
-        .eq('plan_id', planId)
-        .eq('user_id', user.id)
+      await supabase.from('miembros').delete().eq('plan_id', planId).eq('user_id', user.id)
     }
-  
-    setPlanes(prev => prev.filter(p => p.id !== planId))
-    setEliminando(null)
     setRefresh(prev => prev + 1)
+    setEliminando(null)
   }
 
   async function handleLogout() {
@@ -79,91 +58,123 @@ export default function Home() {
 
   if (cargando) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Cargando...</p>
+      <main style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <p style={{color:'#5a8a3a'}}>Cargando...</p>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen p-8 max-w-md mx-auto">
-      <div className="flex justify-between items-center mb-10">
-        <div>
-          <h1 className="text-2xl font-medium">🍽️ Planify</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Hola, {perfil?.nombre || 'amigo'} 👋
-          </p>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Salir
-        </button>
-      </div>
+    <main style={{minHeight:'100vh', background:'#f4f9ee', padding:'0'}}>
+      <div style={{maxWidth:'680px', margin:'0 auto', padding:'0 32px 40px'}}>
 
-      <div className="grid grid-cols-2 gap-3 mb-10">
-        
-          <a href="/plan/crear"
-          className="flex flex-col items-center justify-center gap-2 py-6 rounded-2xl bg-foreground text-background hover:opacity-90 transition-opacity"
-        >
-          <span className="text-2xl">+</span>
-          <span className="font-medium text-sm">Crear plan</span>
-          <span className="text-xs opacity-60">Nuevo grupo</span>
-        </a>
-        
-          <a href="/unirse"
-          className="flex flex-col items-center justify-center gap-2 py-6 rounded-2xl border-2 border-foreground hover:bg-accent transition-colors"
-        >
-          <span className="text-2xl">#</span>
-          <span className="font-medium text-sm">Unirme</span>
-          <span className="text-xs text-muted-foreground">Tengo un código</span>
-        </a>
-      </div>
-
-      <div>
-        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
-          {planes.length > 0 ? `Planes activos (${planes.length})` : 'Sin planes activos'}
-        </h2>
-
-        {planes.length === 0 ? (
-          <div className="text-center py-16 border border-dashed border-border rounded-2xl">
-            <p className="text-4xl mb-3">🍽️</p>
-            <p className="text-muted-foreground text-sm">
-              Crea tu primer plan o únete a uno con un código
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {planes.map((plan: any) => (
-              <div
-                key={plan.id}
-                className="flex items-center justify-between p-4 rounded-xl border border-border hover:bg-accent transition-colors"
-              >
-                <a href={`/plan/${plan.id}`} className="flex-1">
-                  <p className="font-medium">{plan.nombre}</p>
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    📍 {plan.zona} · 🔑 {plan.codigo}
-                  </p>
-                </a>
-                <button
-                  onClick={() => handleEliminar(plan.id)}
-                  disabled={eliminando === plan.id}
-                  className="ml-4 text-sm text-red-400 hover:text-red-600 transition-colors disabled:opacity-50"
-                >
-                  {eliminando === plan.id ? '...' : '🗑'}
-                </button>
+        <div style={{
+              background:'#3B6D11',
+              margin:'0 -32px 32px',
+              padding:'48px 32px 28px',
+              borderRadius:'0 0 28px 28px',
+            }}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
+            <div>
+              <div style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'6px'}}>
+                <svg width="28" height="28" viewBox="0 0 22 22" fill="none">
+                  <circle cx="7" cy="8" r="2.5" fill="#97C459"/>
+                  <circle cx="15" cy="8" r="2.5" fill="#C0DD97"/>
+                  <circle cx="11" cy="6" r="2.5" fill="#97C459" opacity="0.8"/>
+                  <path d="M4 17c0-2.2 2.7-4 6-4" stroke="#C0DD97" strokeWidth="1.8" strokeLinecap="round"/>
+                  <path d="M18 17c0-2.2-2.7-4-6-4" stroke="#C0DD97" strokeWidth="1.8" strokeLinecap="round"/>
+                </svg>
+                <span style={{fontSize:'22px', fontWeight:'500', color:'#EAF3DE'}}>Planify</span>
               </div>
-            ))}
+              <p style={{fontSize:'14px', color:'#97C459'}}>Hola, {perfil?.nombre || 'amigo'} 👋</p>
+            </div>
+            <button onClick={handleLogout} style={{
+              background:'rgba(255,255,255,0.15)',
+              border:'none',
+              borderRadius:'20px',
+              padding:'6px 14px',
+              color:'#C0DD97',
+              fontSize:'13px',
+              cursor:'pointer'
+            }}>
+              Salir
+            </button>
           </div>
-        )}
-      </div>
+        </div>
 
-      <div className="mt-10 pt-6 border-t border-border flex justify-between items-center">
-        <a href="/perfil/crear" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-          ✏️ Editar perfil
-        </a>
-        <p className="text-xs text-muted-foreground">Planify MVP</p>
+        <div style={{display:'flex', gap:'12px', marginBottom:'32px', width:'100%'}}>
+  <a href="/plan/crear" style={{
+  display:'flex', alignItems:'center', gap:'10px',
+  padding:'14px 24px', borderRadius:'14px',
+  background:'#3B6D11', textDecoration:'none',
+  flex:'1',
+}}>
+    <span style={{fontSize:'20px', color:'#EAF3DE'}}>+</span>
+    <div>
+      <p style={{fontSize:'14px', fontWeight:'500', color:'#EAF3DE', margin:0}}>Crear plan</p>
+      <p style={{fontSize:'11px', color:'#97C459', margin:0}}>Nuevo grupo</p>
+    </div>
+  </a>
+  <a href="/unirse" style={{
+  display:'flex', alignItems:'center', gap:'10px',
+  padding:'14px 24px', borderRadius:'14px',
+  background:'#EAF3DE', textDecoration:'none',
+  border:'2px solid #3B6D11',
+  flex:'1',
+}}>
+    <span style={{fontSize:'20px', color:'#3B6D11'}}>#</span>
+    <div>
+      <p style={{fontSize:'14px', fontWeight:'500', color:'#3B6D11', margin:0}}>Unirme</p>
+      <p style={{fontSize:'11px', color:'#639922', margin:0}}>Tengo un código</p>
+    </div>
+  </a>
+</div>
+
+        <div>
+          <p style={{fontSize:'12px', fontWeight:'500', color:'#639922', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:'12px'}}>
+            {planes.length > 0 ? `Planes activos (${planes.length})` : 'Sin planes activos'}
+          </p>
+
+          {planes.length === 0 ? (
+            <div style={{
+              textAlign:'center', padding:'48px 20px',
+              border:'2px dashed #C0DD97', borderRadius:'20px',
+              background:'#f7fcf2'
+            }}>
+              <p style={{fontSize:'32px', marginBottom:'10px'}}>🍽️</p>
+              <p style={{color:'#639922', fontSize:'14px'}}>Crea tu primer plan o únete con un código</p>
+            </div>
+          ) : (
+            <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
+              {planes.map((plan: any) => (
+                <div key={plan.id} style={{
+                  display:'flex', alignItems:'center', justifyContent:'space-between',
+                  padding:'16px 18px', borderRadius:'16px',
+                  background:'#fff', border:'1px solid #d4edbb',
+                }}>
+                  <a href={`/plan/${plan.id}`} style={{flex:1, textDecoration:'none'}}>
+                    <p style={{fontSize:'15px', fontWeight:'500', color:'#1a3d0e', marginBottom:'4px'}}>{plan.nombre}</p>
+                    <p style={{fontSize:'12px', color:'#639922'}}>📍 {plan.zona} · 🔑 {plan.codigo}</p>
+                  </a>
+                  <button
+                    onClick={() => handleEliminar(plan.id)}
+                    disabled={eliminando === plan.id}
+                    style={{background:'none', border:'none', cursor:'pointer', fontSize:'16px', opacity: eliminando === plan.id ? 0.3 : 0.5, padding:'4px'}}
+                  >
+                    🗑
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{marginTop:'32px', paddingTop:'20px', borderTop:'1px solid #d4edbb', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+          <a href="/perfil/crear" style={{fontSize:'13px', color:'#639922', textDecoration:'none'}}>
+            ✏️ Editar perfil
+          </a>
+          <p style={{fontSize:'12px', color:'#97C459'}}>Planify</p>
+        </div>
       </div>
     </main>
   )
