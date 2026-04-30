@@ -66,62 +66,56 @@ export default function Home() {
 
   return (
     <main style={{minHeight:'100vh', background:'#f4f9ee', padding:'0'}}>
-      <div style={{maxWidth:'680px', margin:'0 auto', padding:'0 32px 40px'}}>
+  <div style={{ background: '#3B6D11', padding: '48px 32px 28px', borderRadius: '0 0 28px 28px', marginBottom: '32px' }}>
+  {/* Aquest div és el que separa el logo del botó */}
+  <div style={{ 
+    maxWidth: '900px', 
+    margin: '0 auto', 
+    display: 'flex', 
+    justifyContent: 'space-between', // Separa els elements als extrems
+    alignItems: 'center'             // Centra verticalment el botó amb el logo
+  }}>
+    
+    {/* Bloc de l'Esquerra: Logo i Salutació */}
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+        <svg width="28" height="28" viewBox="0 0 22 22" fill="none">
+          <circle cx="7" cy="8" r="2.5" fill="#97C459" />
+          <circle cx="15" cy="8" r="2.5" fill="#C0DD97" />
+          <circle cx="11" cy="6" r="2.5" fill="#97C459" opacity="0.8" />
+          <path d="M4 17c0-2.2 2.7-4 6-4" stroke="#C0DD97" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M18 17c0-2.2-2.7-4-6-4" stroke="#C0DD97" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+        <span style={{ fontSize: '22px', fontWeight: '500', color: '#EAF3DE' }}>Planify</span>
+      </div>
+      <p style={{ fontSize: '14px', color: '#97C459', margin: 0 }}>Hola, {perfil?.nombre || 'amigo'} 👋</p>
+    </div>
 
-        <div style={{
-              background:'#3B6D11',
-              margin:'0 -32px 32px',
-              padding:'48px 32px 28px',
-              borderRadius:'0 0 28px 28px',
-            }}>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
-            <div>
-              <div style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'6px'}}>
-                <svg width="28" height="28" viewBox="0 0 22 22" fill="none">
-                  <circle cx="7" cy="8" r="2.5" fill="#97C459"/>
-                  <circle cx="15" cy="8" r="2.5" fill="#C0DD97"/>
-                  <circle cx="11" cy="6" r="2.5" fill="#97C459" opacity="0.8"/>
-                  <path d="M4 17c0-2.2 2.7-4 6-4" stroke="#C0DD97" strokeWidth="1.8" strokeLinecap="round"/>
-                  <path d="M18 17c0-2.2-2.7-4-6-4" stroke="#C0DD97" strokeWidth="1.8" strokeLinecap="round"/>
-                </svg>
-                <span style={{fontSize:'22px', fontWeight:'500', color:'#EAF3DE'}}>Planify</span>
-              </div>
-              <p style={{fontSize:'14px', color:'#97C459'}}>Hola, {perfil?.nombre || 'amigo'} 👋</p>
-            </div>
-            <button onClick={handleLogout} style={{
-              background:'rgba(255,255,255,0.15)',
-              border:'none',
-              borderRadius:'20px',
-              padding:'6px 14px',
-              color:'#C0DD97',
-              fontSize:'13px',
-              cursor:'pointer'
-            }}>
-              Salir
-            </button>
-          </div>
-        </div>
+    {/* Bloc de la Dreta: Botó Salir */}
+    <button onClick={handleLogout} style={{
+      background: 'rgba(255,255,255,0.15)',
+      border: 'none',
+      borderRadius: '20px',
+      padding: '6px 14px',
+      color: '#C0DD97',
+      fontSize: '13px',
+      cursor: 'pointer'
+    }}>
+      Salir
+    </button>
 
+  </div>
+</div>
+  <div style={{maxWidth:'900px', margin:'0 auto', padding:'0 32px 40px'}}>
         <div style={{display:'flex', gap:'12px', marginBottom:'32px', width:'100%'}}>
-  <a href="/plan/crear" style={{
-  display:'flex', alignItems:'center', gap:'10px',
-  padding:'14px 24px', borderRadius:'14px',
-  background:'#3B6D11', textDecoration:'none',
-  flex:'1',
-}}>
+  <a href="/plan/crear" style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'10px', padding:'14px 24px', borderRadius:'14px', background:'#3B6D11', textDecoration:'none', flex:'1'}}>
     <span style={{fontSize:'20px', color:'#EAF3DE'}}>+</span>
     <div>
       <p style={{fontSize:'14px', fontWeight:'500', color:'#EAF3DE', margin:0}}>Crear plan</p>
       <p style={{fontSize:'11px', color:'#97C459', margin:0}}>Nuevo grupo</p>
     </div>
   </a>
-  <a href="/unirse" style={{
-  display:'flex', alignItems:'center', gap:'10px',
-  padding:'14px 24px', borderRadius:'14px',
-  background:'#EAF3DE', textDecoration:'none',
-  border:'2px solid #3B6D11',
-  flex:'1',
-}}>
+  <a href="/unirse" style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'10px', padding:'14px 24px', borderRadius:'14px', background:'#EAF3DE', textDecoration:'none', border:'2px solid #3B6D11', flex:'1'}}>
     <span style={{fontSize:'20px', color:'#3B6D11'}}>#</span>
     <div>
       <p style={{fontSize:'14px', fontWeight:'500', color:'#3B6D11', margin:0}}>Unirme</p>
