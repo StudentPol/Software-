@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -26,9 +26,35 @@ export default function CrearPerfil() {
   const [restricciones, setRestricciones] = useState<string[]>([])
   const [presupuesto, setPresupuesto] = useState('€€')
   const [cargando, setCargando] = useState(false)
+  const [cargandoPerfil, setCargandoPerfil] = useState(true)
   const [error, setError] = useState('')
+  const [esEdicion, setEsEdicion] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  useEffect(() => {
+    async function cargarPerfil() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/auth/login'); return }
+
+      const { data: perfil } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (perfil) {
+        setNombre(perfil.nombre || '')
+        setPreferencias(perfil.preferencias || [])
+        setRestricciones(perfil.restricciones || [])
+        setPresupuesto(perfil.presupuesto || '€€')
+        setEsEdicion(true)
+      }
+
+      setCargandoPerfil(false)
+    }
+    cargarPerfil()
+  }, [])
 
   function toggleItem(lista: string[], setLista: (v: string[]) => void, item: string) {
     if (lista.includes(item)) {
@@ -66,13 +92,35 @@ export default function CrearPerfil() {
     router.push('/')
   }
 
+  if (cargandoPerfil) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Cargando perfil...</p>
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-lg">
+
+        {esEdicion && (
+          <a href="/" className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-block">
+            ← Volver
+          </a>
+        )}
+
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-medium mb-2">Crea tu perfil</h1>
+          <div className="text-3xl mb-3">
+            {esEdicion ? '✏️' : '👋'}
+          </div>
+          <h1 className="text-2xl font-medium mb-2">
+            {esEdicion ? 'Editar perfil' : 'Crea tu perfil'}
+          </h1>
           <p className="text-muted-foreground text-sm">
-            El agente usará esto para encontrar el restaurante perfecto para tu grupo
+            {esEdicion
+              ? 'Actualiza tus preferencias cuando quieras'
+              : 'El agente usará esto para encontrar el restaurante perfecto para tu grupo'}
           </p>
         </div>
 
@@ -159,7 +207,7 @@ export default function CrearPerfil() {
             disabled={cargando}
             className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            {cargando ? 'Guardando...' : 'Guardar perfil y continuar →'}
+            {cargando ? 'Guardando...' : esEdicion ? 'Guardar cambios →' : 'Crear perfil y continuar →'}
           </button>
         </div>
       </div>
