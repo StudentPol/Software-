@@ -25,84 +25,61 @@ export default function Login() {
   }
 
   return (
-    <main style={{minHeight:'100vh', background:'#f4f9ee', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
-      <div style={{width:'100%', maxWidth:'420px'}}>
+    <main className="min-h-screen bg-background flex items-center justify-center p-8">
+      <div className="w-full max-w-md">
 
-        <div style={{textAlign:'center', marginBottom:'40px'}}>
-          <div style={{
-            width:'64px', height:'64px', borderRadius:'18px',
-            background:'#3B6D11', margin:'0 auto 16px',
-            display:'flex', alignItems:'center', justifyContent:'center'
-          }}>
-            <svg width="32" height="32" viewBox="0 0 22 22" fill="none">
-              <circle cx="7" cy="8" r="2.5" fill="#97C459"/>
-              <circle cx="15" cy="8" r="2.5" fill="#C0DD97"/>
-              <circle cx="11" cy="6" r="2.5" fill="#97C459" opacity="0.8"/>
-              <path d="M4 17c0-2.2 2.7-4 6-4" stroke="#C0DD97" strokeWidth="1.8" strokeLinecap="round"/>
-              <path d="M18 17c0-2.2-2.7-4-6-4" stroke="#C0DD97" strokeWidth="1.8" strokeLinecap="round"/>
-            </svg>
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-3">
+            <div style={{ background: '#17181a', borderRadius: '14px', padding: '10px', display: 'inline-flex' }}>
+              <svg width="36" height="36" viewBox="0 0 22 22" fill="none">
+                <circle cx="7" cy="8" r="2.5" fill="rgba(255,255,255,0.5)" />
+                <circle cx="15" cy="8" r="2.5" fill="rgba(255,255,255,0.8)" />
+                <circle cx="11" cy="6" r="2.5" fill="rgba(255,255,255,0.5)" opacity="0.8" />
+                <path d="M4 17c0-2.2 2.7-4 6-4" stroke="rgba(255,255,255,0.7)" strokeWidth="1.8" strokeLinecap="round" />
+                <path d="M18 17c0-2.2-2.7-4-6-4" stroke="rgba(255,255,255,0.7)" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </div>
           </div>
-          <h1 style={{fontSize:'26px', fontWeight:'500', color:'#1a3d0e', marginBottom:'6px'}}>Planify</h1>
-          <p style={{fontSize:'14px', color:'#639922'}}>Inicia sesión para continuar</p>
+          <h1 className="text-2xl font-medium mb-2" style={{ fontFamily: 'var(--font-heading)' }}>Planify</h1>
+          <p className="text-sm text-muted-foreground">Inicia sesión para continuar</p>
         </div>
 
-        <div style={{
-          background:'#fff', borderRadius:'24px',
-          border:'1px solid #639922', padding:'32px'
-        }}>
-          <div style={{marginBottom:'20px'}}>
-            <label style={{fontSize:'13px', color:'#5a8a3a', display:'block', marginBottom:'8px'}}>Email</label>
+        <div className="flex flex-col gap-5">
+          <div>
+            <label className="text-sm text-muted-foreground block mb-2">Email</label>
             <input
               type="email"
               placeholder="tu@email.com"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              style={{
-                width:'100%', padding:'12px 16px', borderRadius:'12px',
-                border:'1.5px solid #639922', background:'#f7fcf2',
-                fontSize:'14px', color:'#1a3d0e', outline:'none',
-                boxSizing:'border-box'
-              }}
+              className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
 
-          <div style={{marginBottom:'24px'}}>
-            <label style={{fontSize:'13px', color:'#5a8a3a', display:'block', marginBottom:'8px'}}>Contraseña</label>
+          <div>
+            <label className="text-sm text-muted-foreground block mb-2">Contraseña</label>
             <input
               type="password"
               placeholder="••••••••"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              style={{
-                width:'100%', padding:'12px 16px', borderRadius:'12px',
-                border:'1.5px solid #639922', background:'#f7fcf2',
-                fontSize:'14px', color:'#1a3d0e', outline:'none',
-                boxSizing:'border-box'
-              }}
+              className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
 
-          {error && (
-            <p style={{fontSize:'13px', color:'#dc2626', marginBottom:'16px', textAlign:'center'}}>{error}</p>
-          )}
+          {error && <p className="text-sm text-red-500">{error}</p>}
 
           <button
             onClick={handleLogin}
             disabled={cargando}
-            style={{
-              width:'100%', padding:'14px', borderRadius:'14px',
-              background: cargando ? '#639922' : '#3B6D11',
-              color:'#EAF3DE', fontSize:'15px', fontWeight:'500',
-              border:'none', cursor: cargando ? 'not-allowed' : 'pointer',
-              transition:'opacity 0.2s', opacity: cargando ? 0.7 : 1
-            }}
+            className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {cargando ? 'Entrando...' : 'Iniciar sesión →'}
           </button>
 
-          <p style={{textAlign:'center', fontSize:'13px', color:'#639922', marginTop:'20px'}}>
+          <p className="text-center text-sm text-muted-foreground">
             ¿No tienes cuenta?{' '}
-            <a href="/auth/registro" style={{color:'#3B6D11', fontWeight:'500', textDecoration:'none', borderBottom:'1px solid #3B6D11'}}>
+            <a href="/auth/registro" className="text-foreground underline underline-offset-4">
               Regístrate
             </a>
           </p>

@@ -26,13 +26,29 @@ export async function middleware(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
+  const pathname = request.nextUrl.pathname
 
-  // Si no hay sesión y la ruta no es pública → redirigir al login
-  const isPublicRoute =
-    request.nextUrl.pathname.startsWith('/auth')
-
-  if (!user && !isPublicRoute) {
+  // Rutas públicas: no requieren sesión
+  const isAuthRoute = pathname.startsWith('/auth')
+  if (!user && !isAuthRoute) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
+  }
+
+  // Si hay sesión, comprobar si el perfil está completo
+  // (excepto en la propia página de perfil y en las rutas de auth)
+  const isPerfilRoute = pathname.startsWith('/perfil/crear')
+  if (user && !isAuthRoute && !isPerfilRoute) {
+    const { data: perfil } = await supabase
+      .from('profiles')
+      .select('nombre')
+      .eq('id', user.id)
+      .single()
+
+    // TODO: añadir || !perfil.fecha_nacimiento cuando exista la columna en BD
+    const perfilIncompleto = !perfil || !perfil.nombre
+    if (perfilIncompleto) {
+      return NextResponse.redirect(new URL('/perfil/crear', request.url))
+    }
   }
 
   return supabaseResponse

@@ -30,11 +30,22 @@ export default function Registro() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-8">
+    <main className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-medium mb-2">🍽️ Planify</h1>
-          <p className="text-muted-foreground">Crea tu cuenta</p>
+          <div className="flex justify-center mb-3">
+            <div style={{ background: '#17181a', borderRadius: '14px', padding: '10px', display: 'inline-flex' }}>
+              <svg width="36" height="36" viewBox="0 0 22 22" fill="none">
+                <circle cx="7" cy="8" r="2.5" fill="rgba(255,255,255,0.5)" />
+                <circle cx="15" cy="8" r="2.5" fill="rgba(255,255,255,0.8)" />
+                <circle cx="11" cy="6" r="2.5" fill="rgba(255,255,255,0.5)" opacity="0.8" />
+                <path d="M4 17c0-2.2 2.7-4 6-4" stroke="rgba(255,255,255,0.7)" strokeWidth="1.8" strokeLinecap="round" />
+                <path d="M18 17c0-2.2-2.7-4-6-4" stroke="rgba(255,255,255,0.7)" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </div>
+          </div>
+          <h1 className="text-2xl font-medium mb-2" style={{ fontFamily: 'var(--font-heading)' }}>Planify</h1>
+          <p className="text-sm text-muted-foreground">Crea tu cuenta</p>
         </div>
         <div className="flex flex-col gap-5">
           <div>

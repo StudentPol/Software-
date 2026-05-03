@@ -88,6 +88,36 @@ export default function VotarPage() {
   }, [])
   const restaurante = RESTAURANTES_PRUEBA[indice]
 
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.push('/auth/login')
+  }
+
+  const banner = (
+    <div className="bg-foreground px-8 pt-6 pb-5 rounded-b-3xl mb-8">
+      <div className="max-w-3xl mx-auto flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <svg width="36" height="36" viewBox="0 0 22 22" fill="none">
+            <circle cx="7" cy="8" r="2.5" fill="rgba(255,255,255,0.5)" />
+            <circle cx="15" cy="8" r="2.5" fill="rgba(255,255,255,0.8)" />
+            <circle cx="11" cy="6" r="2.5" fill="rgba(255,255,255,0.5)" opacity="0.8" />
+            <path d="M4 17c0-2.2 2.7-4 6-4" stroke="rgba(255,255,255,0.7)" strokeWidth="1.8" strokeLinecap="round" />
+            <path d="M18 17c0-2.2-2.7-4-6-4" stroke="rgba(255,255,255,0.7)" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+          <span style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: '700', color: 'var(--background)' }}>
+            Planify
+          </span>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="bg-white/15 border-none rounded-xl px-3.5 py-1.5 text-background text-sm cursor-pointer hover:bg-white/25 transition-colors"
+        >
+          Salir
+        </button>
+      </div>
+    </div>
+  )
+
   async function votar(voto: boolean) {
     setAnimacion(voto ? 'right' : 'left')
   
@@ -119,8 +149,10 @@ export default function VotarPage() {
     )
 
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center p-8">
-        <div className="w-full max-w-md text-center">
+      <main className="min-h-screen bg-background">
+        {banner}
+        <div className="max-w-3xl mx-auto px-8 pb-10">
+          <div className="w-full max-w-md mx-auto text-center">
           <div className="text-4xl mb-4">🏆</div>
           <h2 className="text-2xl font-medium mb-2">¡Has votado!</h2>
           <p className="text-muted-foreground text-sm mb-8">
@@ -151,13 +183,16 @@ export default function VotarPage() {
             Ver resultados →
           </button>
         </div>
+        </div>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-8">
-      <div className="w-full max-w-sm">
+    <main className="min-h-screen bg-background">
+      {banner}
+      <div className="max-w-3xl mx-auto px-8 pb-10">
+        <div className="w-full max-w-sm mx-auto">
         <div className="flex justify-between items-center mb-6">
           <a href={`/plan/${params.id}`} className="text-sm text-muted-foreground hover:text-foreground">
             ← Volver
@@ -224,6 +259,7 @@ export default function VotarPage() {
         <p className="text-center text-xs text-muted-foreground mt-4">
           ✗ No me convence · ✓ Me apunta
         </p>
+        </div>
       </div>
     </main>
   )

@@ -58,105 +58,110 @@ export default function Home() {
 
   if (cargando) {
     return (
-      <main style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center'}}>
-        <p style={{color:'#5a8a3a'}}>Cargando...</p>
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Cargando...</p>
       </main>
     )
   }
 
   return (
-    <main style={{minHeight:'100vh', background:'#f4f9ee', padding:'0'}}>
-  <div style={{ background: '#3B6D11', padding: '24px 32px 20px', borderRadius: '0 0 28px 28px', marginBottom: '32px' }}>
-  <div style={{ 
-    maxWidth: '900px', 
-    margin: '0 auto', 
-    display: 'flex', 
-    justifyContent: 'space-between', 
-    alignItems: 'center' 
-  }}>
-    
-    {/* Bloc de l'Esquerra: Només el Logo */}
-    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-      <svg width="45" height="45" viewBox="0 0 22 22" fill="none">
-        <circle cx="7" cy="8" r="2.5" fill="#97C459" />
-        <circle cx="15" cy="8" r="2.5" fill="#C0DD97" />
-        <circle cx="11" cy="6" r="2.5" fill="#97C459" opacity="0.8" />
-        <path d="M4 17c0-2.2 2.7-4 6-4" stroke="#C0DD97" strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M18 17c0-2.2-2.7-4-6-4" stroke="#C0DD97" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-      <span style={{ fontSize: '40px', fontWeight: '600', color: '#EAF3DE' }}>Planify</span>
-    </div>
+    <main className="min-h-screen bg-background relative">
 
-    {/* Bloc de la Dreta: Salutació a sobre del botó */}
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-      <span style={{ fontSize: '14px', color: '#C0DD97', fontWeight: '500' }}>
-        Hola, {perfil?.nombre || 'amigo'} 👋
-      </span>
-      <button onClick={handleLogout} style={{
-        background: 'rgba(255,255,255,0.15)',
-        border: 'none',
-        borderRadius: '10px',
-        padding: '6px 14px',
-        color: '#EAF3DE',
-        fontSize: '13px',
-        cursor: 'pointer'
-      }}>
-        Salir
-      </button>
-    </div>
+      {/* Header */}
+      <div className="bg-foreground px-8 pt-6 pb-5 rounded-b-3xl relative z-10">
+        <div className="max-w-3xl mx-auto flex justify-between items-center">
 
-  </div>
-</div>
-  <div style={{maxWidth:'900px', margin:'0 auto', padding:'0 32px 40px'}}>
-        <div style={{display:'flex', gap:'12px', marginBottom:'32px', width:'100%'}}>
-  <a href="/plan/crear" style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'10px', padding:'14px 24px', borderRadius:'14px', background:'#3B6D11', textDecoration:'none', flex:'1'}}>
-    <span style={{fontSize:'20px', color:'#EAF3DE'}}>+</span>
-    <div>
-      <p style={{fontSize:'14px', fontWeight:'500', color:'#EAF3DE', margin:0}}>Crear plan</p>
-      <p style={{fontSize:'11px', color:'#97C459', margin:0}}>Nuevo grupo</p>
-    </div>
-  </a>
-  <a href="/unirse" style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'10px', padding:'14px 24px', borderRadius:'14px', background:'#EAF3DE', textDecoration:'none', border:'2px solid #3B6D11', flex:'1'}}>
-    <span style={{fontSize:'20px', color:'#3B6D11'}}>#</span>
-    <div>
-      <p style={{fontSize:'14px', fontWeight:'500', color:'#3B6D11', margin:0}}>Unirme</p>
-      <p style={{fontSize:'11px', color:'#639922', margin:0}}>Tengo un código</p>
-    </div>
-  </a>
-</div>
+          <div className="flex items-center gap-3">
+            <svg width="36" height="36" viewBox="0 0 22 22" fill="none">
+              <circle cx="7" cy="8" r="2.5" fill="rgba(255,255,255,0.5)" />
+              <circle cx="15" cy="8" r="2.5" fill="rgba(255,255,255,0.8)" />
+              <circle cx="11" cy="6" r="2.5" fill="rgba(255,255,255,0.5)" opacity="0.8" />
+              <path d="M4 17c0-2.2 2.7-4 6-4" stroke="rgba(255,255,255,0.7)" strokeWidth="1.8" strokeLinecap="round" />
+              <path d="M18 17c0-2.2-2.7-4-6-4" stroke="rgba(255,255,255,0.7)" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            <span style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: '700', color: 'var(--background)' }}>
+              Planify
+            </span>
+          </div>
 
+          <div className="flex flex-col items-end gap-1.5">
+            <span className="text-sm text-background/60 font-medium flex items-center gap-1.5">
+              Hola, {perfil?.nombre || 'amigo'} 👋
+            </span>
+            <button
+              onClick={handleLogout}
+              className="bg-white/15 border-none rounded-xl px-3.5 py-1.5 text-background text-sm cursor-pointer hover:bg-white/25 transition-colors"
+            >
+              Salir
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Hero image */}
+      <div className="mb-8 -mt-6 z-0 relative">
+        <img
+          src="/images/banner.png"
+          alt=""
+          className="w-full h-36 object-cover rounded-b-3xl"
+        />
+      </div>
+
+      {/* Content */}
+      <div className="max-w-3xl mx-auto px-8 pb-10">
+
+        {/* Actions */}
+        <div className="flex gap-3 mb-8">
+          <a href="/plan/crear" className="flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-foreground text-background no-underline flex-1 hover:opacity-90 transition-opacity">
+            <span className="text-sm font-light">+</span>
+            <div>
+              <p className="text-sm font-medium m-0">Crear plan</p>
+              <p className="text-xs opacity-50 m-0">Nuevo grupo</p>
+            </div>
+          </a>
+          <a href="/unirse" className="flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-background no-underline flex-1 border border-border hover:bg-accent transition-colors">
+            <span className="text-sm text-foreground">#</span>
+            <div>
+              <p className="text-sm font-medium text-foreground m-0">Unirme</p>
+              <p className="text-sm text-muted-foreground m-0">Tengo un código</p>
+            </div>
+          </a>
+        </div>
+
+        {/* Plans */}
         <div>
-          <p style={{fontSize:'12px', fontWeight:'500', color:'#639922', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:'12px'}}>
+          <p className="text-sm font-medium text-muted-foreground tracking-widest uppercase mb-3">
             {planes.length > 0 ? `Planes activos (${planes.length})` : 'Sin planes activos'}
           </p>
 
           {planes.length === 0 ? (
-            <div style={{
-              textAlign:'center', padding:'48px 20px',
-              border:'2px dashed #C0DD97', borderRadius:'20px',
-              background:'#f7fcf2'
-            }}>
-              <p style={{fontSize:'32px', marginBottom:'10px'}}>🍽️</p>
-              <p style={{color:'#639922', fontSize:'14px'}}>Crea tu primer plan o únete con un código</p>
+            <div className="text-center py-12 border-2 border-dashed border-border rounded-2xl bg-muted/30">
+              <div className="flex justify-center mb-3">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/50"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+              </div>
+              <p className="text-muted-foreground text-sm">Crea tu primer plan o únete con un código</p>
             </div>
           ) : (
-            <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
+            <div className="flex flex-col gap-2.5">
               {planes.map((plan: any) => (
-                <div key={plan.id} style={{
-                  display:'flex', alignItems:'center', justifyContent:'space-between',
-                  padding:'16px 18px', borderRadius:'16px',
-                  background:'#fff', border:'1px solid #d4edbb',
-                }}>
-                  <a href={`/plan/${plan.id}`} style={{flex:1, textDecoration:'none'}}>
-                    <p style={{fontSize:'15px', fontWeight:'500', color:'#1a3d0e', marginBottom:'4px'}}>{plan.nombre}</p>
-                    <p style={{fontSize:'12px', color:'#639922'}}>📍 {plan.zona} · 🔑 {plan.codigo}</p>
+                <div key={plan.id} className="flex items-center justify-between px-4 py-4 rounded-2xl bg-background border border-border">
+                  <a href={`/plan/${plan.id}`} className="flex-1 no-underline">
+                    <p className="text-sm font-medium text-foreground mb-1">{plan.nombre}</p>
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" className="shrink-0"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                      {plan.zona}
+                      <span className="opacity-30">·</span>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" className="shrink-0" > <path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V7a3 3 0 0 1 3-3zm0 8a2 2 0 0 1 1 3.732V18a1 1 0 0 1-2 0v-2.268A2 2 0 0 1 12 12z"/> </svg>
+                      {plan.codigo}
+                    </p>
                   </a>
                   <button
                     onClick={() => handleEliminar(plan.id)}
                     disabled={eliminando === plan.id}
-                    style={{background:'none', border:'none', cursor:'pointer', fontSize:'16px', opacity: eliminando === plan.id ? 0.3 : 0.5, padding:'4px'}}
+                    className="bg-transparent border-none cursor-pointer p-1.5 opacity-40 hover:opacity-70 transition-opacity disabled:opacity-20"
                   >
-                    🗑
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                   </button>
                 </div>
               ))}
@@ -164,12 +169,15 @@ export default function Home() {
           )}
         </div>
 
-        <div style={{marginTop:'32px', paddingTop:'20px', borderTop:'1px solid #d4edbb', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-          <a href="/perfil/crear" style={{fontSize:'13px', color:'#639922', textDecoration:'none'}}>
-            ✏️ Editar perfil
+        {/* Footer */}
+        <div className="mt-8 pt-5 border-t border-border flex justify-between items-center">
+          <a href="/perfil/crear" className="text-sm text-muted-foreground no-underline hover:text-foreground transition-colors flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Editar perfil
           </a>
-          <p style={{fontSize:'12px', color:'#97C459'}}>Planify</p>
+          <p className="text-sm text-muted-foreground/50" style={{ fontFamily: 'var(--font-heading)' }}>Planify</p>
         </div>
+
       </div>
     </main>
   )

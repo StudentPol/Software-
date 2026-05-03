@@ -59,6 +59,11 @@ export default function ResultadosPage() {
   const ganador = resultados[0]
   const medallas = ['🥇', '🥈', '🥉']
 
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.push('/auth/login')
+  }
+
   if (cargando) {
     return (
       <main className="min-h-screen flex items-center justify-center">
@@ -68,8 +73,34 @@ export default function ResultadosPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-8">
-      <div className="w-full max-w-md">
+    <main className="min-h-screen bg-background">
+
+      {/* Header */}
+      <div className="bg-foreground px-8 pt-6 pb-5 rounded-b-3xl mb-8">
+        <div className="max-w-3xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <svg width="36" height="36" viewBox="0 0 22 22" fill="none">
+              <circle cx="7" cy="8" r="2.5" fill="rgba(255,255,255,0.5)" />
+              <circle cx="15" cy="8" r="2.5" fill="rgba(255,255,255,0.8)" />
+              <circle cx="11" cy="6" r="2.5" fill="rgba(255,255,255,0.5)" opacity="0.8" />
+              <path d="M4 17c0-2.2 2.7-4 6-4" stroke="rgba(255,255,255,0.7)" strokeWidth="1.8" strokeLinecap="round" />
+              <path d="M18 17c0-2.2-2.7-4-6-4" stroke="rgba(255,255,255,0.7)" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            <span style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: '700', color: 'var(--background)' }}>
+              Planify
+            </span>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="bg-white/15 border-none rounded-xl px-3.5 py-1.5 text-background text-sm cursor-pointer hover:bg-white/25 transition-colors"
+          >
+            Salir
+          </button>
+        </div>
+      </div>
+
+      <div className="max-w-3xl mx-auto px-8 pb-10">
+        <div className="w-full max-w-md mx-auto">
         <div className="text-center mb-8">
           <div className="text-4xl mb-3">{ganador?.emoji}</div>
           <h2 className="text-2xl font-medium mb-1">¡{ganador?.nombre} gana!</h2>
@@ -128,6 +159,7 @@ export default function ResultadosPage() {
           >
             Volver al inicio
           </button>
+        </div>
         </div>
       </div>
     </main>
