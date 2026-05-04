@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
+export const dynamic = 'force-dynamic';
+
 export default function UnirseASala() {
   const [codigo, setCodigo] = useState('')
   const [error, setError] = useState('')

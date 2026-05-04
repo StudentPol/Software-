@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
+export const dynamic = 'force-dynamic';
+
 export default function Home() {
   const [planes, setPlanes] = useState<any[]>([])
   const [perfil, setPerfil] = useState<any>(null)

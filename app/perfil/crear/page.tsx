@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
+export const dynamic = 'force-dynamic';
+
 function calcularEdad(fechaNacimiento: string): number | null {
   if (!fechaNacimiento) return null
   const hoy = new Date()
@@ -60,7 +62,7 @@ export default function CrearPerfil() {
 
       if (perfilData) {
         setNombre(perfilData.nombre || '')
-        // setFechaNacimiento(perfilData.fecha_nacimiento || '') // TODO: descomentar cuando exista la columna en BD
+        setFechaNacimiento(perfilData.fecha_nacimiento || '') // TODO: descomentar cuando exista la columna en BD
         setPreferencias(perfilData.preferencias || [])
         setRestricciones(perfilData.restricciones || [])
         setPresupuesto(perfilData.presupuesto || '€€')
@@ -92,15 +94,15 @@ export default function CrearPerfil() {
     }
 
     // TODO: activar cuando exista la columna fecha_nacimiento en BD
-    // const edad = calcularEdad(fechaNacimiento)
-    // if (!fechaNacimiento) {
-    //   setError('La fecha de nacimiento es obligatoria')
-    //   return
-    // }
-    // if (edad === null || edad < 14) {
-    //   setError('Debes tener al menos 14 años para usar esta aplicación')
-    //   return
-    // }
+    const edad = calcularEdad(fechaNacimiento)
+     if (!fechaNacimiento) {
+       setError('La fecha de nacimiento es obligatoria')
+       return
+     }
+     if (edad === null || edad < 14) {
+       setError('Debes tener al menos 14 años para usar esta aplicación')
+       return
+     }
     setCargando(true)
     setError('')
 
@@ -110,7 +112,7 @@ export default function CrearPerfil() {
     const { error } = await supabase.from('profiles').upsert({
       id: user.id,
       nombre,
-      // fecha_nacimiento: fechaNacimiento, // TODO: descomentar cuando exista la columna en BD
+      fecha_nacimiento: fechaNacimiento, // TODO: descomentar cuando exista la columna en BD
       preferencias,
       restricciones,
       presupuesto,

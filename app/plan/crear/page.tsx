@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
+export const dynamic = 'force-dynamic';
+
 const ZONAS = [
   'Gràcia', 'Eixample', 'Barceloneta', 
   'Poblenou', 'Sant Pere', 'Sarrià', 'Gotic'
