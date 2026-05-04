@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useParams, useRouter } from 'next/navigation'
+import { calcularRecomanacions, type PerfilUsuari } from '@/lib/recomanacio'
 
 export default function PlanPage() {
   const [plan, setPlan] = useState<any>(null)
@@ -10,6 +11,7 @@ export default function PlanPage() {
   const [cargando, setCargando] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
   const [votacionIniciada, setVotacionIniciada] = useState(false)
+  const [iniciant, setIniciant] = useState(false)
   const params = useParams()
   const router = useRouter()
   const supabase = createClient()
@@ -30,7 +32,7 @@ export default function PlanPage() {
 
       const { data: miembrosData } = await supabase
         .from('miembros')
-        .select('user_id, profiles(nombre)')
+        .select('user_id, profiles(nombre, preferencias, restricciones, presupuesto)')
         .eq('plan_id', params.id)
 
       setMiembros(miembrosData || [])
@@ -53,11 +55,52 @@ export default function PlanPage() {
   }
 
   async function handleEmpezarVotacion() {
+    setIniciant(true)
+  
+    // 1. Calcular recomanació amb els perfils dels membres
+    const perfils: PerfilUsuari[] = miembros
+      .filter((m: any) => m.profiles)
+      .map((m: any) => ({
+        id: m.user_id,
+        nom: m.profiles.nombre || 'Usuari',
+        preferencies: m.profiles.preferencias || [],
+        restriccions: m.profiles.restricciones || [],
+        pressupost: m.profiles.presupuesto || '€€',
+      }))
+  
+    const recomanacions = calcularRecomanacions(perfils)
+    const topCuines = recomanacions
+      .filter(r => r.compatible)
+      .slice(0, 3)
+      .map(r => r.cuina.nom)
+      .join(' OR ')
+  
+    // 2. Buscar restaurants via API route
+    const query = `restaurants ${topCuines} ${plan.zona} Barcelona`
+    const placesRes = await fetch(`/api/restaurants?query=${encodeURIComponent(query)}`)
+    const placesData = await placesRes.json()
+  
+    const restaurantsReals = placesData.restaurants || []
+      .slice(0, 5)
+      .map((r: any) => ({
+        id: r.place_id,
+        nom: r.name,
+        adreca: r.formatted_address,
+        rating: r.rating || null,
+        emoji: '🍽️',
+        puntuacio: 50,
+        membres_a_favor: [],
+      }))
+  
+    // 3. Guardar restaurants i marcar votació iniciada
     await supabase
       .from('planes')
-      .update({ votacion_iniciada: true })
+      .update({
+        cuines_seleccionades: restaurantsReals,
+        votacion_iniciada: true,
+      })
       .eq('id', params.id)
-
+  
     router.push(`/plan/${params.id}/votar`)
   }
 
@@ -121,12 +164,13 @@ export default function PlanPage() {
           </div>
 
           {userId === plan.creador_id ? (
-            <button
-              onClick={handleEmpezarVotacion}
-              className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
-            >
-              ¡Todo el grupo está! Empezar votación →
-            </button>
+  <button
+    onClick={handleEmpezarVotacion}
+    disabled={iniciant}
+    className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+  >
+    {iniciant ? '🔄 Buscant restaurants...' : '¡Todo el grupo está! Empezar votación →'}
+  </button>
           ) : votacionIniciada ? (
             <button
               onClick={() => router.push(`/plan/${params.id}/votar`)}

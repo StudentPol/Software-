@@ -191,7 +191,7 @@ export default function VotarPage() {
   }
 
   const restaurante = restaurants[indice]
-
+  console.log('foto ref:', restaurante?.foto)
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-8">
       <div className="w-full max-w-sm">
@@ -213,44 +213,68 @@ export default function VotarPage() {
         </div>
 
         {/* Targeta del restaurant */}
-        <div
-          className="border border-border rounded-2xl p-6 mb-6 transition-all duration-300"
-          style={{
-            transform: animacion === 'right'
-              ? 'translateX(200px) rotate(15deg)'
-              : animacion === 'left'
-              ? 'translateX(-200px) rotate(-15deg)'
-              : 'none',
-            opacity: animacion ? 0 : 1,
-          }}
-        >
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h3 className="text-xl font-medium">{restaurante.nom}</h3>
-              {restaurante.membres_a_favor?.length > 0 && (
-                <p className="text-muted-foreground text-sm">
-                  👍 A {restaurante.membres_a_favor.join(', ')} els agrada
-                </p>
-              )}
-            </div>
-          </div>
+<div
+  className="border border-border rounded-2xl overflow-hidden mb-6 transition-all duration-300"
+  style={{
+    transform: animacion === 'right'
+      ? 'translateX(200px) rotate(15deg)'
+      : animacion === 'left'
+      ? 'translateX(-200px) rotate(-15deg)'
+      : 'none',
+    opacity: animacion ? 0 : 1,
+  }}
+>
+  {/* Foto */}
+  {restaurante.foto ? (
+  <img
+    src={`/api/foto?ref=${restaurante.foto}`}
+    alt={restaurante.nom}
+    className="w-full h-48 object-cover"
+    
+  />
+) : (
+  <div className="w-full h-48 bg-accent flex items-center justify-center text-5xl">
+    🍽️
+  </div>
+)}
 
-          <div className="h-32 rounded-xl bg-accent flex items-center justify-center text-5xl mb-4">
-            {restaurante.emoji}
-          </div>
+  <div className="p-6">
+  <div className="flex justify-between items-start mb-3">
+  <div className="flex-1 pr-3">
+    <h3 className="text-xl font-medium">{restaurante.nom}</h3>
+    <p className="text-muted-foreground text-sm">{restaurante.adreca}</p>
+  </div>
+  {restaurante.preu && (
+    <span className="text-sm font-medium px-3 py-1 rounded-full bg-accent whitespace-nowrap flex-shrink-0">
+      {restaurante.preu}
+    </span>
+  )}
+</div>
 
-          {/* Barra de compatibilitat */}
-          <div className="h-2 rounded-full bg-accent overflow-hidden">
-            <div
-              className="h-full rounded-full bg-foreground"
-              style={{ width: `${restaurante.puntuacio}%` }}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground mt-1 text-right">
-            {restaurante.puntuacio}% compatibilitat amb el grup
-          </p>
-        </div>
+    <div className="flex gap-4 text-sm text-muted-foreground mb-4">
+      {restaurante.rating && (
+        <span>⭐ {restaurante.rating} ({restaurante.num_ressenyes})</span>
+      )}
+    </div>
 
+    {restaurante.membres_a_favor?.length > 0 && (
+      <p className="text-sm text-muted-foreground">
+        👍 A {restaurante.membres_a_favor.join(', ')} els agrada
+      </p>
+    )}
+
+    {/* Barra de compatibilitat */}
+    <div className="h-1.5 rounded-full bg-accent overflow-hidden mt-4">
+      <div
+        className="h-full rounded-full bg-foreground"
+        style={{ width: `${restaurante.puntuacio}%` }}
+      />
+    </div>
+    <p className="text-xs text-muted-foreground mt-1 text-right">
+      {restaurante.puntuacio}% compatibilitat amb el grup
+    </p>
+  </div>
+</div>
         {/* Botons de vot */}
         <div className="flex gap-4">
           <button
