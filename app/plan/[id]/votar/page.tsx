@@ -55,13 +55,25 @@ export default function VotarPage() {
         .eq('plan_id', params.id)
         .eq('user_id', user.id)
 
-      if (votosExistentes && votosExistentes.length >= cuines.length && cuines.length > 0) {
-        setTerminado(true)
-      } else {
-        setIndice(0)
-        setVotos([])
-        setTerminado(false)
-      }
+        if (votosExistentes && votosExistentes.length >= cuines.length && cuines.length > 0) {
+          // Carregar els vots anteriors per mostrar-los correctament
+          const { data: votosAnteriors } = await supabase
+            .from('votos')
+            .select('restaurante_id, voto')
+            .eq('plan_id', params.id)
+            .eq('user_id', user.id)
+        
+          const votosCarregats = (votosAnteriors || []).map((v: any) => ({
+            id: v.restaurante_id,
+            voto: v.voto,
+          }))
+          setVotos(votosCarregats)
+          setTerminado(true)
+        } else {
+          setIndice(votosExistentes?.length || 0)
+          setVotos([])
+          setTerminado(false)
+        }
 
       setCargando(false)
     }
@@ -251,11 +263,20 @@ export default function VotarPage() {
   )}
 </div>
 
-    <div className="flex gap-4 text-sm text-muted-foreground mb-4">
-      {restaurante.rating && (
-        <span>⭐ {restaurante.rating} ({restaurante.num_ressenyes})</span>
-      )}
-    </div>
+<div className="flex gap-4 text-sm text-muted-foreground mb-4">
+  {restaurante.rating && (
+    <span>⭐ {restaurante.rating} ({restaurante.num_ressenyes})</span>
+  )}
+</div>
+
+
+  <a href={`https://www.google.com/maps/place/?q=place_id:${restaurante.id}`}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors inline-block mb-4"
+>
+  📍 Veure a Google Maps
+</a>
 
     {restaurante.membres_a_favor?.length > 0 && (
       <p className="text-sm text-muted-foreground">

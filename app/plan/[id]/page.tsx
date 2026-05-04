@@ -159,18 +159,55 @@ export default function PlanPage() {
           </div>
 
           <div className="bg-accent rounded-xl p-4 mb-6 text-center">
-            <p className="text-sm text-muted-foreground mb-1">Comparte este código</p>
-            <p className="text-2xl font-medium tracking-widest">{plan.codigo}</p>
-          </div>
+  <p className="text-sm text-muted-foreground mb-1">Comparte este código</p>
+  <p className="text-2xl font-medium tracking-widest mb-3">{plan.codigo}</p>
+  <div className="flex gap-2">
+    <button
+      onClick={() => navigator.clipboard.writeText(plan.codigo)}
+      className="flex-1 py-2 rounded-lg border border-border bg-background text-sm hover:bg-background/80 transition-colors"
+    >
+      Copiar codi
+    </button>
+    <button
+      onClick={() => navigator.clipboard.writeText(
+        `${window.location.origin}/unirse?codigo=${plan.codigo}`
+      )}
+      className="flex-1 py-2 rounded-lg border border-border bg-background text-sm hover:bg-background/80 transition-colors"
+    >
+      🔗 Copiar enllaç
+    </button>
+  </div>
+</div>
 
           {userId === plan.creador_id ? (
-  <button
-    onClick={handleEmpezarVotacion}
-    disabled={iniciant}
-    className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-  >
-    {iniciant ? '🔄 Buscant restaurants...' : '¡Todo el grupo está! Empezar votación →'}
-  </button>
+  votacionIniciada ? (
+    <div className="flex flex-col gap-3">
+      <button
+        onClick={() => router.push(`/plan/${params.id}/votar`)}
+        className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
+      >
+        Continuar votació →
+      </button>
+      <button
+        onClick={async () => {
+          await supabase.from('planes').update({ votacion_iniciada: false, cuines_seleccionades: null }).eq('id', params.id)
+          await supabase.from('votos').delete().eq('plan_id', params.id)
+          setVotacionIniciada(false)
+        }}
+        className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium text-sm"
+      >
+        🔄 Reiniciar votació
+      </button>
+    </div>
+  ) : (
+    <button
+      onClick={handleEmpezarVotacion}
+      disabled={iniciant}
+      className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+    >
+      {iniciant ? '🔄 Buscant restaurants...' : '¡Todo el grupo está! Empezar votación →'}
+    </button>
+  )
           ) : votacionIniciada ? (
             <button
               onClick={() => router.push(`/plan/${params.id}/votar`)}

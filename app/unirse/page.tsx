@@ -3,11 +3,13 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 
 export const dynamic = 'force-dynamic';
 
 export default function UnirseASala() {
-  const [codigo, setCodigo] = useState('')
+  const searchParams = useSearchParams()
+  const [codigo, setCodigo] = useState(searchParams.get('codigo') || '')
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
   const router = useRouter()
@@ -27,7 +29,10 @@ export default function UnirseASala() {
     setError('')
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/auth/login'); return }
+    if (!user) { 
+      router.push(`/auth/login?redirect=/unirse?codigo=${codigo}`)
+      return 
+    }
 
     const { data: plan, error: planError } = await supabase
       .from('planes')

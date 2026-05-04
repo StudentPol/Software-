@@ -216,13 +216,17 @@ export default function ResultadosPage() {
                       <span className="text-lg">{medallas[i] || '  '}</span>
                       <span className="text-xl">{r.emoji}</span>
                       <div>
-                        <p className="font-medium">{r.nombre || r.nom}</p>
-                        {r.cocina && (
-                          <p className={`text-xs ${esGuanyador ? 'opacity-70' : 'text-muted-foreground'}`}>
-                            {r.cocina} · {r.precio}
-                          </p>
-                        )}
-                      </div>
+  <p className="font-medium">{r.nombre || r.nom}</p>
+  
+    <a href={`https://www.google.com/maps/place/?q=place_id:${r.id}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    className={`text-xs underline underline-offset-2 ${esGuanyador ? 'opacity-70' : 'text-muted-foreground'}`}
+    onClick={e => e.stopPropagation()}
+  >
+    📍 Google Maps
+  </a>
+</div>
                     </div>
                     <span className={`text-sm font-medium ${esGuanyador ? 'opacity-80' : 'text-muted-foreground'}`}>
                       {r.votos} ✓

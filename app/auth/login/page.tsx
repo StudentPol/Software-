@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 
 export const dynamic = 'force-dynamic';
 
 export default function Login() {
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -23,7 +25,8 @@ export default function Login() {
       setCargando(false)
       return
     }
-    router.push('/')
+    const redirect = searchParams.get('redirect') || '/'
+router.push(redirect)
   }
 
   return (
@@ -81,9 +84,9 @@ export default function Login() {
 
           <p className="text-center text-sm text-muted-foreground">
             ¿No tienes cuenta?{' '}
-            <a href="/auth/registro" className="text-foreground underline underline-offset-4">
-              Regístrate
-            </a>
+            <a href={`/auth/registro${searchParams.get('redirect') ? `?redirect=${searchParams.get('redirect')}` : ''}`} className="text-foreground underline underline-offset-4">
+  Regístrate
+</a>
           </p>
         </div>
       </div>

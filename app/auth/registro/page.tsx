@@ -3,10 +3,13 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 
 export const dynamic = 'force-dynamic';
 
 export default function Registro() {
+  const searchParams = useSearchParams()
+  const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmar, setConfirmar] = useState('')
@@ -16,19 +19,30 @@ export default function Registro() {
   const supabase = createClient()
 
   async function handleRegistro() {
+    if (!nombre.trim()) {
+      setError('El nombre es obligatorio')
+      return
+    }
     if (password !== confirmar) {
       setError('Las contraseñas no coinciden')
       return
     }
     setCargando(true)
     setError('')
-    const { error } = await supabase.auth.signUp({ email, password })
-    if (error) {
-      setError(error.message)
+
+    const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
+    if (signUpError) {
+      setError(signUpError.message)
       setCargando(false)
       return
     }
-    router.push('/perfil/crear')
+
+    if (data.user) {
+      await supabase.from('profiles').upsert({ id: data.user.id, nombre: nombre.trim() })
+    }
+
+    const redirect = searchParams.get('redirect') || '/'
+    router.push(redirect)
   }
 
   return (
@@ -50,6 +64,16 @@ export default function Registro() {
           <p className="text-sm text-muted-foreground">Crea tu cuenta</p>
         </div>
         <div className="flex flex-col gap-5">
+          <div>
+            <label className="text-sm text-muted-foreground block mb-2">Nombre</label>
+            <input
+              type="text"
+              placeholder="Tu nombre"
+              value={nombre}
+              onChange={e => setNombre(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+          </div>
           <div>
             <label className="text-sm text-muted-foreground block mb-2">Email</label>
             <input
@@ -92,7 +116,7 @@ export default function Registro() {
           </button>
           <p className="text-center text-sm text-muted-foreground">
             ¿Ya tienes cuenta?{" "}
-            <a href="/auth/login" className="text-foreground underline underline-offset-4">
+            <a href={`/auth/login${searchParams.get('redirect') ? `?redirect=${searchParams.get('redirect')}` : ''}`} className="text-foreground underline underline-offset-4">
               Inicia sesión
             </a>
           </p>
