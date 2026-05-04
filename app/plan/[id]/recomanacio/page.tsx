@@ -289,11 +289,36 @@ export default function RecomanacioPage() {
 
         {/* CTA: anar a votar */}
         <button
-          onClick={() => router.push(`/plan/${params.id}/votar`)}
-          className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
-        >
-          Ara a votar restaurants específics →
-        </button>
+  onClick={async () => {
+    const cuinesAVotar = compatibles.slice(0, 5).map(r => ({
+      id: r.cuina.id,
+      nom: r.cuina.nom,
+      emoji: r.cuina.emoji,
+      puntuacio: r.puntuacio,
+      membres_a_favor: r.membres_a_favor,
+    }))
+
+    console.log('Guardant cuines:', cuinesAVotar)
+  console.log('Plan id:', params.id)
+
+  const { error } = await supabase
+      .from('planes')
+      .update({ cuines_seleccionades: cuinesAVotar })
+      .eq('id', params.id)
+
+      console.log('Error supabase:', error)
+
+  if (error) {
+    alert('Error guardant: ' + error.message)
+    return
+  }
+
+    router.push(`/plan/${params.id}/votar`)
+  }}
+  className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
+>
+  Ara a votar restaurants específics →
+</button>
 
       </div>
       </div>

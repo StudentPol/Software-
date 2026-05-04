@@ -24,30 +24,30 @@ export default function ResultadosPage() {
     async function cargarResultados() {
       const { data: planData } = await supabase
         .from('planes')
-        .select('*')
+        .select('*, cuines_seleccionades')
         .eq('id', params.id)
         .single()
-
+    
       setPlan(planData)
-
+    
+      const cuines = planData?.cuines_seleccionades || []
+    
       const { data: votosData } = await supabase
         .from('votos')
         .select('restaurante_id, voto')
         .eq('plan_id', params.id)
-
-      // Contar votos por restaurante
+    
       const conteo: Record<string, number> = {}
       votosData?.forEach(v => {
         if (v.voto) {
           conteo[v.restaurante_id] = (conteo[v.restaurante_id] || 0) + 1
         }
       })
-
-      // Ordenar restaurantes por votos
-      const ranking = RESTAURANTES_PRUEBA
-        .map(r => ({ ...r, votos: conteo[r.id] || 0 }))
-        .sort((a, b) => b.votos - a.votos)
-
+    
+      const ranking = cuines
+        .map((r: any) => ({ ...r, nombre: r.nom, votos: conteo[r.id] || 0 }))
+        .sort((a: any, b: any) => b.votos - a.votos)
+    
       setResultados(ranking)
       setCargando(false)
     }
