@@ -9,6 +9,7 @@ export default function PlanPage() {
   const [miembros, setMiembros] = useState<any[]>([])
   const [cargando, setCargando] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
+  const [votacionIniciada, setVotacionIniciada] = useState(false)
   const params = useParams()
   const router = useRouter()
   const supabase = createClient()
@@ -25,6 +26,7 @@ export default function PlanPage() {
       const { data: { user } } = await supabase.auth.getUser()
       setUserId(user?.id || null)
       setPlan(planData)
+      setVotacionIniciada(planData.votacion_iniciada || false)
 
       const { data: miembrosData } = await supabase
         .from('miembros')
@@ -48,6 +50,15 @@ export default function PlanPage() {
   async function handleLogout() {
     await supabase.auth.signOut()
     router.push('/auth/login')
+  }
+
+  async function handleEmpezarVotacion() {
+    await supabase
+      .from('planes')
+      .update({ votacion_iniciada: true })
+      .eq('id', params.id)
+
+    router.push(`/plan/${params.id}/votar`)
   }
 
   return (
@@ -83,45 +94,52 @@ export default function PlanPage() {
             ← Volver
           </a>
 
-        <div className="mb-8">
-          <h2 className="text-2xl font-medium mb-1">{plan.nombre}</h2>
-          <p className="text-muted-foreground text-sm">📍 {plan.zona} · 🔑 {plan.codigo}</p>
-        </div>
-
-        <div className="mb-8">
-          <p className="text-sm text-muted-foreground mb-3">
-            Miembros del plan ({miembros.length})
-          </p>
-          <div className="flex flex-col gap-2">
-            {miembros.map((m, i) => (
-              <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-lg border border-border">
-                <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-sm font-medium">
-                  {m.profiles?.nombre?.[0]?.toUpperCase() || '?'}
-                </div>
-                <p className="font-medium">{m.profiles?.nombre || 'Usuario'}</p>
-              </div>
-            ))}
+          <div className="mb-8">
+            <h2 className="text-2xl font-medium mb-1">{plan.nombre}</h2>
+            <p className="text-muted-foreground text-sm">📍 {plan.zona} · 🔑 {plan.codigo}</p>
           </div>
-        </div>
 
-        <div className="bg-accent rounded-xl p-4 mb-6 text-center">
-          <p className="text-sm text-muted-foreground mb-1">Comparte este código</p>
-          <p className="text-2xl font-medium tracking-widest">{plan.codigo}</p>
-        </div>
+          <div className="mb-8">
+            <p className="text-sm text-muted-foreground mb-3">
+              Miembros del plan ({miembros.length})
+            </p>
+            <div className="flex flex-col gap-2">
+              {miembros.map((m, i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-lg border border-border">
+                  <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-sm font-medium">
+                    {m.profiles?.nombre?.[0]?.toUpperCase() || '?'}
+                  </div>
+                  <p className="font-medium">{m.profiles?.nombre || 'Usuario'}</p>
+                </div>
+              ))}
+            </div>
+          </div>
 
-        {userId === plan.creador_id ? (
-          <button
-            onClick={() => router.push(`/plan/${params.id}/votar`)}
-            className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
-          >
-            ¡Todo el grupo está! Empezar votación →
-          </button>
-        ) : (
-          <div className="w-full py-4 rounded-xl border border-dashed border-border text-center">
-            <p className="text-sm text-muted-foreground">⏳ Esperando a que el creador inicie la votación...</p>
+          <div className="bg-accent rounded-xl p-4 mb-6 text-center">
+            <p className="text-sm text-muted-foreground mb-1">Comparte este código</p>
+            <p className="text-2xl font-medium tracking-widest">{plan.codigo}</p>
+          </div>
+
+          {userId === plan.creador_id ? (
+            <button
+              onClick={handleEmpezarVotacion}
+              className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
+            >
+              ¡Todo el grupo está! Empezar votación →
+            </button>
+          ) : votacionIniciada ? (
+            <button
+              onClick={() => router.push(`/plan/${params.id}/votar`)}
+              className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
+            >
+              ¡Empieza a votar! →
+            </button>
+          ) : (
+            <div className="w-full py-4 rounded-xl border border-dashed border-border text-center">
+              <p className="text-sm text-muted-foreground">⏳ Esperando a que el creador inicie la votación...</p>
+            </div>
+          )}
         </div>
-        )}
-    </div>
       </div>
     </main>
   )
