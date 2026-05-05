@@ -217,7 +217,7 @@ export default function ResultadosPage() {
                       <span className="text-xl">{r.emoji}</span>
                       <div>
   <p className="font-medium">{r.nombre || r.nom}</p>
-  
+  {r.adreca && (
     <a href={`https://www.google.com/maps/place/?q=place_id:${r.id}`}
     target="_blank"
     rel="noopener noreferrer"
@@ -226,6 +226,7 @@ export default function ResultadosPage() {
   >
     📍 Google Maps
   </a>
+  )}
 </div>
                     </div>
                     <span className={`text-sm font-medium ${esGuanyador ? 'opacity-80' : 'text-muted-foreground'}`}>
