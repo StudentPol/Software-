@@ -4,10 +4,10 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
-export const dynamic = 'force-dynamic';
 
-export default function Login() {
+function LoginForm() {
   const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -91,5 +91,12 @@ router.push(redirect)
         </div>
       </div>
     </main>
+  )
+}
+export default function Login() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }
