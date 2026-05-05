@@ -57,7 +57,6 @@ export default function PlanPage() {
   async function handleEmpezarVotacion() {
     setIniciant(true)
   
-    // 1. Calcular recomanació amb els perfils dels membres
     const perfils: PerfilUsuari[] = miembros
       .filter((m: any) => m.profiles)
       .map((m: any) => ({
@@ -69,34 +68,50 @@ export default function PlanPage() {
       }))
   
     const recomanacions = calcularRecomanacions(perfils)
-    const topCuines = recomanacions
-      .filter(r => r.compatible)
-      .slice(0, 3)
-      .map(r => r.cuina.nom)
-      .join(' OR ')
+    let restaurantsAVotar: any[] = []
   
-    // 2. Buscar restaurants via API route
-    const query = `restaurants ${topCuines} ${plan.zona} Barcelona`
-    const placesRes = await fetch(`/api/restaurants?query=${encodeURIComponent(query)}`)
-    const placesData = await placesRes.json()
+    try {
+      const topCuines = recomanacions
+        .filter(r => r.compatible)
+        .slice(0, 3)
+        .map(r => r.cuina.nom)
+        .join(' OR ')
   
-    const restaurantsReals = placesData.restaurants || []
-      .slice(0, 5)
-      .map((r: any) => ({
-        id: r.place_id,
-        nom: r.name,
-        adreca: r.formatted_address,
-        rating: r.rating || null,
-        emoji: '🍽️',
-        puntuacio: 50,
-        membres_a_favor: [],
-      }))
+      const query = `restaurants ${topCuines} ${plan.zona} Barcelona`
+      const placesRes = await fetch(`/api/restaurants?query=${encodeURIComponent(query)}`)
   
-    // 3. Guardar restaurants i marcar votació iniciada
+      if (placesRes.ok) {
+        const placesData = await placesRes.json()
+        if (placesData.restaurants?.length > 0) {
+          restaurantsAVotar = placesData.restaurants
+        }
+      }
+    } catch (e) {
+      // Si falla l'API, continuem amb el fallback
+    }
+  
+    // Fallback: usar les cuines del matchmaker
+    if (restaurantsAVotar.length === 0) {
+      restaurantsAVotar = recomanacions
+        .filter(r => r.compatible)
+        .slice(0, 5)
+        .map(r => ({
+          id: r.cuina.id,
+          nom: r.cuina.nom,
+          emoji: r.cuina.emoji,
+          puntuacio: r.puntuacio,
+          membres_a_favor: r.membres_a_favor,
+          adreca: null,
+          rating: null,
+          foto: null,
+          preu: null,
+        }))
+    }
+  
     await supabase
       .from('planes')
       .update({
-        cuines_seleccionades: restaurantsReals,
+        cuines_seleccionades: restaurantsAVotar,
         votacion_iniciada: true,
       })
       .eq('id', params.id)
