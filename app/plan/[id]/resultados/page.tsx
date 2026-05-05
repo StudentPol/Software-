@@ -244,6 +244,12 @@ export default function ResultadosPage() {
           </div>
 
           <div className="flex flex-col gap-3">
+  <button
+    onClick={() => router.push(`/plan/${params.id}/recomanacio`)}
+    className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
+  >
+    🧠 Veure recomanació del grup
+  </button>
             <button
               onClick={async () => {
                 const { data: { user } } = await supabase.auth.getUser()

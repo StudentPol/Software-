@@ -105,6 +105,7 @@ export default function PlanPage() {
           rating: null,
           foto: null,
           preu: null,
+          url: null,
         }))
     }
   
