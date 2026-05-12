@@ -20,6 +20,7 @@ export default function RecomanacioPage() {
   const params = useParams()
   const router = useRouter()
   const supabase = createClient()
+  const [teRestaurants, setTeRestaurants] = useState(false)
 
   useEffect(() => {
     async function carregar() {
@@ -35,6 +36,7 @@ export default function RecomanacioPage() {
         return
       }
       setPlan(planData)
+      setTeRestaurants(!!(planData.cuines_seleccionades?.length > 0))
 
       // Carregar membres del pla amb els seus perfils
       const { data: membresData, error: membresError } = await supabase
@@ -288,37 +290,28 @@ export default function RecomanacioPage() {
         )}
 
         {/* CTA: anar a votar */}
-        <button
-  onClick={async () => {
-    const cuinesAVotar = compatibles.slice(0, 5).map(r => ({
-      id: r.cuina.id,
-      nom: r.cuina.nom,
-      emoji: r.cuina.emoji,
-      puntuacio: r.puntuacio,
-      membres_a_favor: r.membres_a_favor,
-    }))
-
-    console.log('Guardant cuines:', cuinesAVotar)
-  console.log('Plan id:', params.id)
-
-  const { error } = await supabase
-      .from('planes')
-      .update({ cuines_seleccionades: cuinesAVotar })
-      .eq('id', params.id)
-
-      console.log('Error supabase:', error)
-
-  if (error) {
-    alert('Error guardant: ' + error.message)
-    return
-  }
-
-    router.push(`/plan/${params.id}/votar`)
-  }}
-  className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
->
-  Ara a votar restaurants específics →
-</button>
+        {!teRestaurants && (
+  <button
+    onClick={async () => {
+      const cuinesAVotar = compatibles.slice(0, 5).map(r => ({
+        id: r.cuina.id,
+        nom: r.cuina.nom,
+        emoji: r.cuina.emoji,
+        puntuacio: r.puntuacio,
+        membres_a_favor: r.membres_a_favor,
+      }))
+      const { error } = await supabase
+        .from('planes')
+        .update({ cuines_seleccionades: cuinesAVotar })
+        .eq('id', params.id)
+      if (error) { alert('Error guardant: ' + error.message); return }
+      router.push(`/plan/${params.id}/votar`)
+    }}
+    className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
+  >
+    Ara a votar restaurants específics →
+  </button>
+)}
 
       </div>
       </div>

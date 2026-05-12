@@ -26,10 +26,16 @@ export default function Home() {
 
       const { data: miembrosData } = await supabase
         .from('miembros')
-        .select('plan_id, planes(id, nombre, zona, codigo, created_at)')
+        .select('plan_id, planes(id, nombre, zona, codigo, created_at, fecha)')
         .eq('user_id', user.id)
 
-      const planesActivos = miembrosData?.map((m: any) => m.planes).filter(Boolean) || []
+        const planesActivos = (miembrosData?.map((m: any) => m.planes).filter(Boolean) || [])
+        .sort((a: any, b: any) => {
+          if (!a.fecha && !b.fecha) return 0
+          if (!a.fecha) return 1
+          if (!b.fecha) return -1
+          return new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+        })
       setPlanes(planesActivos)
       setCargando(false)
     }
@@ -156,6 +162,12 @@ export default function Home() {
                       <span className="opacity-30">·</span>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" className="shrink-0" > <path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm0 2a3 3 0 0 1 3 3v3H9V7a3 3 0 0 1 3-3zm0 8a2 2 0 0 1 1 3.732V18a1 1 0 0 1-2 0v-2.268A2 2 0 0 1 12 12z"/> </svg>
                       {plan.codigo}
+                      {plan.fecha && (
+  <>
+    <span className="opacity-30">·</span>
+    📅 {new Date(plan.fecha).toLocaleDateString('ca-ES', { day: 'numeric', month: 'short' })}
+  </>
+)}
                     </p>
                   </a>
                   <button

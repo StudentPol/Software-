@@ -6,11 +6,6 @@ import { useRouter } from 'next/navigation'
 
 
 
-const ZONAS = [
-  'Gràcia', 'Eixample', 'Barceloneta', 
-  'Poblenou', 'Sant Pere', 'Sarrià', 'Gotic'
-]
-
 function generarCodigo() {
   const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
   const nums = '123456789'
@@ -49,7 +44,7 @@ function Banner({ onLogout }: { onLogout: () => void }) {
 
 export default function CrearPlan() {
   const [nombre, setNombre] = useState('')
-  const [zona, setZona] = useState('Gràcia')
+  const [zona, setZona] = useState('')
   const [fecha, setFecha] = useState('')
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
@@ -70,6 +65,11 @@ export default function CrearPlan() {
     }
     setCargando(true)
     setError('')
+
+    if (!zona.trim()) {
+      setError('La zona és obligatòria')
+      return
+    }
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/auth/login'); return }
@@ -125,6 +125,14 @@ export default function CrearPlan() {
                 Copiar código
               </button>
               <button
+  onClick={() => navigator.clipboard.writeText(
+    `${window.location.origin}/unirse?codigo=${codigoGenerado}`
+  )}
+  className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
+>
+  🔗 Copiar enlace de invitación
+</button>
+              <button
                 onClick={() => router.push(`/plan/${planId}`)}
                 className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
               >
@@ -160,23 +168,15 @@ export default function CrearPlan() {
             </div>
 
             <div>
-              <label className="text-sm text-muted-foreground block mb-2">Zona</label>
-              <div className="flex flex-wrap gap-2">
-                {ZONAS.map(z => (
-                  <button
-                    key={z}
-                    onClick={() => setZona(z)}
-                    className={`px-4 py-2 rounded-full text-sm border transition-colors ${
-                      zona === z
-                        ? 'bg-foreground text-background border-foreground'
-                        : 'border-border hover:bg-accent'
-                    }`}
-                  >
-                    {z}
-                  </button>
-                ))}
-              </div>
-            </div>
+  <label className="text-sm text-muted-foreground block mb-2">Zona o barri</label>
+  <input
+    type="text"
+    placeholder="Ej: Gràcia, Eixample, Poblenou..."
+    value={zona}
+    onChange={e => setZona(e.target.value)}
+    className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+  />
+</div>
 
             <div>
               <label className="text-sm text-muted-foreground block mb-2">
