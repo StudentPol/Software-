@@ -23,27 +23,37 @@ export async function GET(req: NextRequest) {
   const query = req.nextUrl.searchParams.get('query')
   const apiKey = process.env.GOOGLE_PLACES_API_KEY
 
+  // Validación robusta de parámetros (Evita errores de compilación)
   if (!apiKey) {
     return NextResponse.json({ error: 'API key no configurada' }, { status: 500 })
   }
 
-  const res = await fetch(
-    `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query!)}&language=ca&key=${apiKey}`
-  )
-  const data = await res.json()
+  if (!query) {
+    return NextResponse.json({ error: 'Falta el parámetro query' }, { status: 400 })
+  }
 
-  const restaurants = (data.results || []).slice(0, 5).map((r: any) => ({
-    id: r.place_id,
-    nom: r.name,
-    adreca: r.formatted_address?.split(',').slice(0, 2).join(','),
-    rating: r.rating || null,
-    num_ressenyes: r.user_ratings_total || 0,
-    preu: r.price_level ? '€'.repeat(r.price_level) : null,
-    foto: r.photos?.[0]?.photo_reference || null,
-    emoji: emojiPerTipus(r.types || [], r.name),
-    puntuacio: 50,
-    membres_a_favor: [],
-  }))
+  try {
+    const res = await fetch(
+      `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&language=ca&key=${apiKey}`
+    )
+    const data = await res.json()
 
-  return NextResponse.json({ restaurants })
+    // Definimos el mapeo de forma segura para evitar el error de 'any'
+    const restaurants = (data.results || []).slice(0, 5).map((r: any) => ({
+      id: r.place_id,
+      nom: r.name,
+      adreca: r.formatted_address?.split(',').slice(0, 2).join(',') || '',
+      rating: r.rating || null,
+      num_ressenyes: r.user_ratings_total || 0,
+      preu: r.price_level ? '€'.repeat(r.price_level) : null,
+      foto: r.photos?.[0]?.photo_reference || null,
+      emoji: emojiPerTipus(r.types || [], r.name),
+      puntuacio: 50,
+      membres_a_favor: [],
+    }))
+
+    return NextResponse.json({ restaurants })
+  } catch (error) {
+    return NextResponse.json({ error: 'Error en la búsqueda' }, { status: 500 })
+  }
 }
