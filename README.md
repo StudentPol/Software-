@@ -147,7 +147,7 @@ npm run lint     # Ejecutar linter (ESLint)
 
 ## 📞 Contacto y Contribuciones
 
-Para reportar problemas o contribuir al proyecto, abre un issue o pull request en el repositorio.
+Para reportar problemas o contribuir al proyecto, abre un issue o pull request en el repositorio
 
 ---
 
