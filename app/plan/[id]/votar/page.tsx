@@ -243,7 +243,6 @@ export default function VotarPage() {
         >
           <div className="relative w-full h-48">
             {restaurante.foto ? (
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={`/api/foto?ref=${restaurante.foto}`}
                 alt={restaurante.nom}
