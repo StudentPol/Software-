@@ -24,11 +24,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
       - name: Install dependencies
         run: npm install --legacy-peer-deps
-      - name: Build
+      - name: Build project
         run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: "https://ejemplo.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "clave-falsa-para-que-compile"
