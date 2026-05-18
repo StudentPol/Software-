@@ -290,62 +290,49 @@ export default function RecomanacioPage() {
           </div>
         )}
 
-        {/* CTA: anar a votar */}
-        {!teRestaurants && (
-          <button
-            onClick={async () => {
-              // 1. Calculem i preparem les dades base del grup
-              const { pressupostDominant, restriccionsGrup } = calcularRecomanacions(perfils)
+        {/* CTA: anar a votar o recalcular */}
+        <button
+          onClick={async () => {
+            const { pressupostDominant, restriccionsGrup } = calcularRecomanacions(perfils)
+            const topCuines = compatibles.slice(0, 5)
 
-              // Extraiem les 5 millors cuines compatibles del grup
-              const topCuines = compatibles.slice(0, 5)
+            try {
+              const params_query = new URLSearchParams({
+                cuines: topCuines.map(c => c.cuina.nom).join(','),
+                puntuacions: topCuines.map(c => c.puntuacio).join(','),
+                membres: topCuines.map(c => c.membres_a_favor.join('|')).join(','),
+                zona: plan?.zona || '',
+                preu_ideal: pressupostDominant,
+                restriccions: restriccionsGrup.join(',')
+              })
 
-              try {
-                // Preparem els paràmetres exactes per a la nostra API de Google Places
-                const params_query = new URLSearchParams({
-                  cuines: topCuines.map(c => c.cuina.nom).join(','),
-                  // Enviem les puntuacions de cada cuina perquè el backend sàpiga quina és la nota base
-                  puntuacions: topCuines.map(c => c.puntuacio).join(','),
-                  // Enviem quins membres voten a favor de cada cuina
-                  membres: topCuines.map(c => c.membres_a_favor.join('|')).join(','),
-                  zona: plan?.zona || '',
-                  preu_ideal: pressupostDominant,
-                  restriccions: restriccionsGrup.join(',')
-                })
+              const res = await fetch(`/api/restaurants?${params_query}`)
+              const data = await res.json()
 
-                // 2. CRIDEM A L'API I EN RECOLLIM ELS RESTAURANTS REALS!
-                const res = await fetch(`/api/restaurants?${params_query}`)
-                const data = await res.json()
-
-                if (!data.restaurants || data.restaurants.length === 0) {
-                  alert("No hem trobat restaurants disponibles a Google Maps amb aquests filtres.")
-                  return
-                }
-
-                // 3. Guardem a Supabase els RESTAURANTS REALS (que ja porten la puntuacio variable de l'api)
-                const { error } = await supabase
-                  .from('planes')
-                  .update({ cuines_seleccionades: data.restaurants }) // Ara sí, enviem els llocs de Google!
-                  .eq('id', params.id)
-                  
-                if (error) { 
-                  alert('Error guardant a Supabase: ' + error.message)
-                  return 
-                }
-
-                // 4. Anem directes a votar els locals de Google
-                router.push(`/plan/${params.id}/votar`)
-
-              } catch (err) {
-                console.error("Error en el procés de cerca:", err)
-                alert("Hi ha hagut un problema connectant amb el servei de restaurants.")
+              if (!data.restaurants || data.restaurants.length === 0) {
+                alert("No hem trobat restaurants disponibles.")
+                return
               }
-            }}
-            className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
-          >
-            Ara a votar restaurants específics →
-          </button>
-        )}
+
+              // Guardem els nous restaurants calculats a sobre dels vells
+              const { error } = await supabase
+                .from('planes')
+                .update({ cuines_seleccionades: data.restaurants })
+                .eq('id', params.id)
+                
+              if (error) { alert('Error: ' + error.message); return }
+              
+              router.push(`/plan/${params.id}/votar`)
+
+            } catch (err) {
+              console.error(err)
+              alert("Error connectant amb el servei.")
+            }
+          }}
+          className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
+        >
+          {teRestaurants ? "🔄 Recalcular i actualitzar restaurants" : "Ara a votar restaurants específics →"}
+        </button>
 
       </div>
       </div>
