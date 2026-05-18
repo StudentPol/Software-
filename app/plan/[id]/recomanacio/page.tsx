@@ -308,6 +308,7 @@ export default function RecomanacioPage() {
 
               const res = await fetch(`/api/restaurants?${params_query}`)
               const data = await res.json()
+              console.log("🚀 L'API RETORNA AIXÒ AL FRONTEND:", data);
 
               if (!data.restaurants || data.restaurants.length === 0) {
                 alert("No hem trobat restaurants disponibles.")
