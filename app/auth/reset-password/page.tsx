@@ -48,7 +48,7 @@ export default function ResetPassword() {
           <div className="text-center">
             <div className="text-4xl mb-4">✅</div>
             <h2 className="text-lg font-medium mb-2">Contrasenya canviada!</h2>
-            <p className="text-sm text-muted-foreground">Redirigint a l'inici...</p>
+            <p className="text-sm text-muted-foreground">Redirigint a l&apos;inici...</p>
           </div>
         ) : (
           <div className="flex flex-col gap-5">

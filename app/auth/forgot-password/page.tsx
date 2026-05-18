@@ -45,7 +45,7 @@ export default function ForgotPassword() {
             <div className="text-4xl mb-4">📧</div>
             <h2 className="text-lg font-medium mb-2">Email enviat!</h2>
             <p className="text-sm text-muted-foreground mb-6">
-              Revisa la teva safata d'entrada i segueix les instruccions per recuperar la contrasenya.
+              Revisa la teva safata d&apos;entrada i segueix les instruccions per recuperar la contrasenya.
             </p>
             <a href="/auth/login" className="text-sm text-foreground underline underline-offset-4">
               Tornar al login
