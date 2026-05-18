@@ -291,49 +291,61 @@ export default function RecomanacioPage() {
         )}
 
         {/* CTA: anar a votar */}
-{!teRestaurants && (
-  <button
-    onClick={async () => {
-      // 1. Extraiem les dades intel·ligents de la recomanació
-      const { ranking, pressupostDominant, restriccionsGrup } = calcularRecomanacions(perfils)
+        {!teRestaurants && (
+          <button
+            onClick={async () => {
+              // 1. Calculem i preparem les dades base del grup
+              const { pressupostDominant, restriccionsGrup } = calcularRecomanacions(perfils)
 
-      const cuinesAVotar = compatibles.slice(0, 5).map(r => ({
-        id: r.cuina.id,
-        nom: r.cuina.nom,
-        emoji: r.cuina.emoji,
-        puntuacio: r.puntuacio,
-        membres_a_favor: r.membres_a_favor,
-      }))
+              // Extraiem les 5 millors cuines compatibles del grup
+              const topCuines = compatibles.slice(0, 5)
 
-      // 2. Trucada a l'API enviant els filtres reals de preu i al·lèrgies
-      try {
-        const params_query = new URLSearchParams({
-          cuines: cuinesAVotar.map(c => c.nom).join(','),
-          zona: plan?.zona || '',
-          preu_ideal: pressupostDominant,
-          restriccions: restriccionsGrup.join(',') // "Sense gluten,Vegà"
-        })
+              try {
+                // Preparem els paràmetres exactes per a la nostra API de Google Places
+                const params_query = new URLSearchParams({
+                  cuines: topCuines.map(c => c.cuina.nom).join(','),
+                  // Enviem les puntuacions de cada cuina perquè el backend sàpiga quina és la nota base
+                  puntuacions: topCuines.map(c => c.puntuacio).join(','),
+                  // Enviem quins membres voten a favor de cada cuina
+                  membres: topCuines.map(c => c.membres_a_favor.join('|')).join(','),
+                  zona: plan?.zona || '',
+                  preu_ideal: pressupostDominant,
+                  restriccions: restriccionsGrup.join(',')
+                })
 
-        // Això activarà la cerca filtrada del teu backend
-        await fetch(`/api/restaurants?${params_query}`)
-      } catch (err) {
-        console.error("Error filtrant a l'API:", err)
-      }
+                // 2. CRIDEM A L'API I EN RECOLLIM ELS RESTAURANTS REALS!
+                const res = await fetch(`/api/restaurants?${params_query}`)
+                const data = await res.json()
 
-      // 3. Guardem a la base de dades i anem a votar
-      const { error } = await supabase
-        .from('planes')
-        .update({ cuines_seleccionades: cuinesAVotar })
-        .eq('id', params.id)
-        
-      if (error) { alert('Error guardant: ' + error.message); return }
-      router.push(`/plan/${params.id}/votar`)
-    }}
-    className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
-  >
-    Ara a votar restaurants específics →
-  </button>
-)}
+                if (!data.restaurants || data.restaurants.length === 0) {
+                  alert("No hem trobat restaurants disponibles a Google Maps amb aquests filtres.")
+                  return
+                }
+
+                // 3. Guardem a Supabase els RESTAURANTS REALS (que ja porten la puntuacio variable de l'api)
+                const { error } = await supabase
+                  .from('planes')
+                  .update({ cuines_seleccionades: data.restaurants }) // Ara sí, enviem els llocs de Google!
+                  .eq('id', params.id)
+                  
+                if (error) { 
+                  alert('Error guardant a Supabase: ' + error.message)
+                  return 
+                }
+
+                // 4. Anem directes a votar els locals de Google
+                router.push(`/plan/${params.id}/votar`)
+
+              } catch (err) {
+                console.error("Error en el procés de cerca:", err)
+                alert("Hi ha hagut un problema connectant amb el servei de restaurants.")
+              }
+            }}
+            className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
+          >
+            Ara a votar restaurants específics →
+          </button>
+        )}
 
       </div>
       </div>
