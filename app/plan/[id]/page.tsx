@@ -72,14 +72,16 @@ export default function PlanPage() {
   
     try {
       const topCuines = recomanacions
-        .filter(r => r.compatible)
-        .slice(0, 3)
-        .map(r => r.cuina.nom)
-        .join(' OR ')
-  
-      const query = `restaurants ${topCuines} ${plan.zona} Barcelona`
-      const placesRes = await fetch(`/api/restaurants?query=${encodeURIComponent(query)}`)
-  
+  .filter(r => r.compatible)
+  .slice(0, 3)
+  .map(r => r.cuina.nom)
+
+const params_query = new URLSearchParams({
+  cuines: topCuines.join(','),
+  zona: `${plan.zona} Barcelona`
+})
+
+const placesRes = await fetch(`/api/restaurants?${params_query}`)
       if (placesRes.ok) {
         const placesData = await placesRes.json()
         if (placesData.restaurants?.length > 0) {

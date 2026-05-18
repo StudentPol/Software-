@@ -19,19 +19,16 @@ function emojiPerTipus(types: string[], nom: string): string {
 }
 
 export async function GET(req: NextRequest) {
-  const query = req.nextUrl.searchParams.get('query')
+  const cuinesParam = req.nextUrl.searchParams.get('cuines')
+  const zona = req.nextUrl.searchParams.get('zona')
   const apiKey = process.env.GOOGLE_PLACES_API_KEY
 
   if (!apiKey) return NextResponse.json({ error: 'API key no configurada' }, { status: 500 })
-  if (!query) return NextResponse.json({ error: 'Falta el parámetro query' }, { status: 400 })
+  if (!cuinesParam || !zona) return NextResponse.json({ error: 'Falten paràmetres' }, { status: 400 })
+
+  const cuines = cuinesParam.split(',').map(c => c.trim())
 
   try {
-    // Separar les cuines i fer una crida per cada una
-    const parts = query.split(' OR ')
-    const zona = parts[parts.length - 1].replace('restaurants ', '').trim()
-    const cuines = parts.slice(0, -1).map(p => p.replace('restaurants ', '').trim())
-
-    // Fer una crida per cada cuina
     const promises = cuines.map(cuina =>
       fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(`restaurant ${cuina} ${zona}`)}&language=ca&key=${apiKey}`)
         .then(r => r.json())
@@ -39,7 +36,6 @@ export async function GET(req: NextRequest) {
 
     const resultats = await Promise.all(promises)
 
-    // Combinar i deduplicar per place_id
     const vistos = new Set<string>()
     const tots: any[] = []
 
@@ -52,7 +48,6 @@ export async function GET(req: NextRequest) {
       })
     })
 
-    // Ordenar per rating i agafar els 5 millors
     const restaurants = tots
       .sort((a, b) => (b.rating || 0) - (a.rating || 0))
       .slice(0, 5)
