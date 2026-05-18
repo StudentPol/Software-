@@ -274,13 +274,13 @@ export default function VotarPage() {
               )}
             </div>
 
-            {restaurante.id && (
-              <a href={`http://googleusercontent.com/maps.google.com/?q=${restaurante.id}`}
-                target="_blank" rel="noopener noreferrer"
-                className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors inline-block mb-4">
-                📍 Veure a Google Maps
-              </a>
-            )}
+            {restaurante.adreca && (
+  <a href={`https://www.google.com/maps/place/?q=place_id:${restaurante.id}`}
+    target="_blank" rel="noopener noreferrer"
+    className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors inline-block mb-4">
+    📍 Veure a Google Maps
+  </a>
+)}
 
             {restaurante.membres_a_favor && restaurante.membres_a_favor.length > 0 && (
               <p className="text-sm text-muted-foreground">
