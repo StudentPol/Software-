@@ -78,7 +78,7 @@ export default function PlanPage() {
 
 const params_query = new URLSearchParams({
   cuines: topCuines.join(','),
-  zona: `${plan.zona} Barcelona`
+  zona: plan.zona
 })
 
 const placesRes = await fetch(`/api/restaurants?${params_query}`)
