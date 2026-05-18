@@ -83,7 +83,20 @@ export default function PlanPage() {
       if (placesRes.ok) {
         const placesData = await placesRes.json()
         if (placesData.restaurants?.length > 0) {
-          restaurantsAVotar = placesData.restaurants
+          const cuinesCompatibles = recomanacions.filter(r => r.compatible)
+          
+          restaurantsAVotar = placesData.restaurants.map((r: any) => {
+            const nomLower = r.nom.toLowerCase()
+            const cuinaCoincident = cuinesCompatibles.find(c =>
+              nomLower.includes(c.cuina.nom.toLowerCase()) ||
+              c.cuina.nom.toLowerCase().includes(nomLower)
+            )
+            const puntuacio = cuinaCoincident
+              ? cuinaCoincident.puntuacio
+              : Math.round(cuinesCompatibles.reduce((s, c) => s + c.puntuacio, 0) / (cuinesCompatibles.length || 1))
+      
+            return { ...r, puntuacio, membres_a_favor: cuinaCoincident?.membres_a_favor || [] }
+          })
         }
       }
     } catch (e) {
