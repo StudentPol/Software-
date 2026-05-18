@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   const membresParam = req.nextUrl.searchParams.get('membres')
   const zona = req.nextUrl.searchParams.get('zona')
   
-  // 1. Capturem els nous paràmetres que enviem des de la PlanPage
+  // Capturem els nous paràmetres enviats
   const preuIdealStr = req.nextUrl.searchParams.get('preu_ideal') || '€€'
   const restriccionsParam = req.nextUrl.searchParams.get('restriccions') || ''
   
@@ -37,18 +37,20 @@ export async function GET(req: NextRequest) {
   const puntuacions = puntuacionsParam?.split(',').map(Number) || cuines.map(() => 50)
   const membres = membresParam?.split(',').map(m => m.split('|').filter(Boolean)) || cuines.map(() => [])
 
-  // Netegem les restriccions del grup per afegir-les de text a la cerca (ex: "sense gluten, vegan")
+  // Netegem les restriccions del grup per afegir-les de text a la cerca
   const textRestriccions = restriccionsParam.split(',').filter(Boolean).join(' ')
 
-  // Convertim el text del preu ideal en el nivell numèric de Google Maps (1=€, 2=€€, 3=€€€, 4=€€€€)
+  // Convertim el text del preu ideal en el nivell numèric de Google Maps (1=€, 2=€€, 3=€€€, 4=€€€+)
   const preuIdealNumeric = preuIdealStr === '€' ? 1 : preuIdealStr === '€€' ? 2 : preuIdealStr === '€€€' ? 3 : 4
 
   try {
     const promises = cuines.map(cuina => {
-      // 2. Injectem les restriccions a la query de cerca perquè Google filtri locals compatibles
-      const queryText = `restaurant ${cuina} ${textRestriccions} ${zona}`.trim()
+      // Si hi ha restriccions (ex: "sense gluten"), les posem entre cometes al final.
+      const restriccionsNetejes = textRestriccions ? ` "${textRestriccions}"` : ''
+      const queryText = `restaurant ${cuina} ${zona}${restriccionsNetejes}`.trim()
       
-      return fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(queryText)}&language=ca&key=${apiKey}`)
+      // Forcem &type=restaurant perquè Google elimini les pastisseries de soca-rel
+      return fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(queryText)}&type=restaurant&language=ca&key=${apiKey}`)
         .then(r => r.json())
         .then(data => ({ data, cuina }))
     })
@@ -58,41 +60,51 @@ export async function GET(req: NextRequest) {
     const vistos = new Set<string>()
     const tots: any[] = []
 
+    // ==========================================
+    // AQUÍ ESTÀ EL NOU BLOC MODIFICAT 👇
+    // ==========================================
     resultats.forEach(({ data, cuina }) => {
       const idx = cuines.indexOf(cuina)
-      const puntuacio = puntuacions[idx] || 50
+      const puntuacioBaseCuina = puntuacions[idx] || 50
       const membresAFavor = membres[idx] || []
 
       ;(data.results || []).forEach((r: any) => {
         if (!vistos.has(r.place_id)) {
           vistos.add(r.place_id)
-          tots.push({ ...r, puntuacio, membres_a_favor: membresAFavor })
+
+          // 1. Comencem amb la puntuació base que tenia aquesta cuina per al grup
+          let coincidenciaFinal = puntuacioBaseCuina
+
+          // 2. Calculem el bonus/penalització de preu
+          const preuRestaurant = r.price_level !== undefined ? r.price_level : preuIdealNumeric
+          const diferenciaPreu = Math.abs(preuRestaurant - preuIdealNumeric)
+          
+          if (diferenciaPreu === 0) {
+            coincidenciaFinal += 15  // Clava el preu del grup? Li sumem 15 punts de coincidència
+          } else if (diferenciaPreu >= 2) {
+            coincidenciaFinal -= 15  // Està molt lluny de la butxaca del grup? Penalitzem amb 15 punts
+          }
+
+          // 3. Afegim un petit bonus per les estrelles de Google Maps (max +5 punts)
+          if (r.rating) {
+            coincidenciaFinal += (r.rating - 3) * 2.5
+          }
+
+          // Assegurem que el percentatge final quedi lògic entre 0 i 100
+          coincidenciaFinal = Math.max(0, Math.min(100, Math.round(coincidenciaFinal)))
+
+          tots.push({ 
+            ...r, 
+            puntuacio_calculada: coincidenciaFinal, // Guardem la nota personalitzada del local
+            membres_a_favor: membresAFavor 
+          })
         }
       })
     })
 
+    // Ordenem directament de major a menor coincidència calculada
     const restaurants = tots
-      // 3. Ordenació intel·ligent secundària per preu
-      .sort((a, b) => {
-        // Primer criteri: Puntuació de preferència de cuina de l'algorisme (Major a menor)
-        if (b.puntuacio !== a.puntuacio) {
-          return b.puntuacio - a.puntuacio
-        }
-
-        // Segon criteri: Proximitat al pressupost ideal del grup (Menor diferència primer)
-        // Si Google no té informació del preu del restaurant, assumim que és compatible temporalment (diferència 0)
-        const preuA = a.price_level !== undefined ? a.price_level : preuIdealNumeric
-        const preuB = b.price_level !== undefined ? b.price_level : preuIdealNumeric
-        const difA = Math.abs(preuA - preuIdealNumeric)
-        const difB = Math.abs(preuB - preuIdealNumeric)
-        
-        if (difA !== difB) {
-          return difA - difB
-        }
-
-        // Tercer criteri: La valoració de les estrelles de Google (Major a menor)
-        return (b.rating || 0) - (a.rating || 0)
-      })
+      .sort((a, b) => b.puntuacio_calculada - a.puntuacio_calculada)
       .slice(0, 5)
       .map((r: any) => ({
         id: r.place_id,
@@ -103,9 +115,10 @@ export async function GET(req: NextRequest) {
         preu: r.price_level ? '€'.repeat(r.price_level) : null,
         foto: r.photos?.[0]?.photo_reference || null,
         emoji: emojiPerTipus(r.types || [], r.name),
-        puntuacio: r.puntuacio,
+        puntuacio: r.puntuacio_calculada, // Ara el frontend rebrà el percentatge real i variable
         membres_a_favor: r.membres_a_favor,
       }))
+    // ==========================================
 
     return NextResponse.json({ restaurants })
   } catch (error) {
