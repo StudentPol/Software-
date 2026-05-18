@@ -187,8 +187,19 @@ function normalitzarRestriccio(r: string): string {
  *
  * Les cuines descartades surten al final de la llista amb compatible=false.
  */
-export function calcularRecomanacions(perfils: PerfilUsuari[]): ResultatCuina[] {
-  if (perfils.length === 0) return []
+export function calcularRecomanacions(perfils: PerfilUsuari[]): {
+  ranking: ResultatCuina[]
+  pressupostDominant: '€' | '€€' | '€€€'
+  limitMaximGrup: number
+  restriccionsGrup: string[]
+} {
+  if (perfils.length === 0) {
+    return { ranking: [], pressupostDominant: '€€', limitMaximGrup: 2, restriccionsGrup: [] }
+  }
+
+  // 1. Calculem primer els mapes de preus i els límits (Així estan disponibles a tot el fitxer)
+  const mapaPreus = { '€': 1, '€€': 2, '€€€': 3 }
+  const limitMaximGrup = Math.min(...perfils.map(p => mapaPreus[p.pressupost]))
 
   // Calcular pressupost dominant del grup
   const comptadorPressupost: Record<string, number> = { '€': 0, '€€': 0, '€€€': 0 }
@@ -257,11 +268,10 @@ export function calcularRecomanacions(perfils: PerfilUsuari[]): ResultatCuina[] 
       // Bonus petit per cuines neutrales (no preferides però tampoc rebutjades)
       if (membresAFavor.length === 0) {
         puntuacio += 2
-        raons.push(`Opció neutra compatible amb tot el grup`)
+        raons.push(`Opció neutra compatible amb tout el grup`)
       }
 
       // Normalitzar entre 0 i 100
-      // Màxim teòric: tots prefereixen (perfils.length * 10) + bonus pressupost (5) + consens (15)
       const maxTeoric = perfils.length * 10 + 5 + 15
       puntuacio = Math.min(100, Math.round((puntuacio / maxTeoric) * 100))
     } else {
@@ -279,12 +289,20 @@ export function calcularRecomanacions(perfils: PerfilUsuari[]): ResultatCuina[] 
     }
   })
 
-  // Ordenar: primer compatibles per puntuació DESC, després incompatibles
-  return resultats.sort((a, b) => {
+  // Ordenar l'array de cuines
+  resultats.sort((a, b) => {
     if (a.compatible && !b.compatible) return -1
     if (!a.compatible && b.compatible) return 1
     return b.puntuacio - a.puntuacio
   })
+
+  // Retorn final net amb estructures clares
+  return {
+    ranking: resultats,
+    pressupostDominant, 
+    limitMaximGrup,      
+    restriccionsGrup: restriccionsUnica
+  }
 }
 
 // ---------------------------------------------------------------------------

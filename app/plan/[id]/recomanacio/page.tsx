@@ -61,9 +61,10 @@ export default function RecomanacioPage() {
           pressupost: m.profiles.presupuesto || '€€',
         }))
 
-      setPerfils(perfilsCarregats)
-      setResultats(calcularRecomanacions(perfilsCarregats))
-      setCargando(false)
+        setPerfils(perfilsCarregats)
+        const { ranking } = calcularRecomanacions(perfilsCarregats) // 👈 Extraiem 'ranking'
+        setResultats(ranking)
+        setCargando(false)
     }
 
     carregar()
@@ -290,9 +291,12 @@ export default function RecomanacioPage() {
         )}
 
         {/* CTA: anar a votar */}
-        {!teRestaurants && (
+{!teRestaurants && (
   <button
     onClick={async () => {
+      // 1. Extraiem les dades intel·ligents de la recomanació
+      const { ranking, pressupostDominant, restriccionsGrup } = calcularRecomanacions(perfils)
+
       const cuinesAVotar = compatibles.slice(0, 5).map(r => ({
         id: r.cuina.id,
         nom: r.cuina.nom,
@@ -300,10 +304,28 @@ export default function RecomanacioPage() {
         puntuacio: r.puntuacio,
         membres_a_favor: r.membres_a_favor,
       }))
+
+      // 2. Trucada a l'API enviant els filtres reals de preu i al·lèrgies
+      try {
+        const params_query = new URLSearchParams({
+          cuines: cuinesAVotar.map(c => c.nom).join(','),
+          zona: plan?.zona || '',
+          preu_ideal: pressupostDominant,
+          restriccions: restriccionsGrup.join(',') // "Sense gluten,Vegà"
+        })
+
+        // Això activarà la cerca filtrada del teu backend
+        await fetch(`/api/restaurants?${params_query}`)
+      } catch (err) {
+        console.error("Error filtrant a l'API:", err)
+      }
+
+      // 3. Guardem a la base de dades i anem a votar
       const { error } = await supabase
         .from('planes')
         .update({ cuines_seleccionades: cuinesAVotar })
         .eq('id', params.id)
+        
       if (error) { alert('Error guardant: ' + error.message); return }
       router.push(`/plan/${params.id}/votar`)
     }}

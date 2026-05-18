@@ -23,6 +23,11 @@ export async function GET(req: NextRequest) {
   const puntuacionsParam = req.nextUrl.searchParams.get('puntuacions')
   const membresParam = req.nextUrl.searchParams.get('membres')
   const zona = req.nextUrl.searchParams.get('zona')
+  
+  // 1. Capturem els nous paràmetres que enviem des de la PlanPage
+  const preuIdealStr = req.nextUrl.searchParams.get('preu_ideal') || '€€'
+  const restriccionsParam = req.nextUrl.searchParams.get('restriccions') || ''
+  
   const apiKey = process.env.GOOGLE_PLACES_API_KEY
 
   if (!apiKey) return NextResponse.json({ error: 'API key no configurada' }, { status: 500 })
@@ -32,12 +37,21 @@ export async function GET(req: NextRequest) {
   const puntuacions = puntuacionsParam?.split(',').map(Number) || cuines.map(() => 50)
   const membres = membresParam?.split(',').map(m => m.split('|').filter(Boolean)) || cuines.map(() => [])
 
+  // Netegem les restriccions del grup per afegir-les de text a la cerca (ex: "sense gluten, vegan")
+  const textRestriccions = restriccionsParam.split(',').filter(Boolean).join(' ')
+
+  // Convertim el text del preu ideal en el nivell numèric de Google Maps (1=€, 2=€€, 3=€€€, 4=€€€€)
+  const preuIdealNumeric = preuIdealStr === '€' ? 1 : preuIdealStr === '€€' ? 2 : preuIdealStr === '€€€' ? 3 : 4
+
   try {
-    const promises = cuines.map(cuina =>
-      fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(`restaurant ${cuina} ${zona}`)}&language=ca&key=${apiKey}`)
+    const promises = cuines.map(cuina => {
+      // 2. Injectem les restriccions a la query de cerca perquè Google filtri locals compatibles
+      const queryText = `restaurant ${cuina} ${textRestriccions} ${zona}`.trim()
+      
+      return fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(queryText)}&language=ca&key=${apiKey}`)
         .then(r => r.json())
         .then(data => ({ data, cuina }))
-    )
+    })
 
     const resultats = await Promise.all(promises)
 
@@ -58,7 +72,27 @@ export async function GET(req: NextRequest) {
     })
 
     const restaurants = tots
-      .sort((a, b) => b.puntuacio - a.puntuacio || (b.rating || 0) - (a.rating || 0))
+      // 3. Ordenació intel·ligent secundària per preu
+      .sort((a, b) => {
+        // Primer criteri: Puntuació de preferència de cuina de l'algorisme (Major a menor)
+        if (b.puntuacio !== a.puntuacio) {
+          return b.puntuacio - a.puntuacio
+        }
+
+        // Segon criteri: Proximitat al pressupost ideal del grup (Menor diferència primer)
+        // Si Google no té informació del preu del restaurant, assumim que és compatible temporalment (diferència 0)
+        const preuA = a.price_level !== undefined ? a.price_level : preuIdealNumeric
+        const preuB = b.price_level !== undefined ? b.price_level : preuIdealNumeric
+        const difA = Math.abs(preuA - preuIdealNumeric)
+        const difB = Math.abs(preuB - preuIdealNumeric)
+        
+        if (difA !== difB) {
+          return difA - difB
+        }
+
+        // Tercer criteri: La valoració de les estrelles de Google (Major a menor)
+        return (b.rating || 0) - (a.rating || 0)
+      })
       .slice(0, 5)
       .map((r: any) => ({
         id: r.place_id,

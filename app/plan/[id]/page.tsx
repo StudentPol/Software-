@@ -67,26 +67,31 @@ export default function PlanPage() {
         pressupost: m.profiles.presupuesto || '€€',
       }))
   
-    const recomanacions = calcularRecomanacions(perfils)
+    // 1. Extraiem de forma desestructurada tot el que ens retorna la funció actualitzada
+    const { ranking, pressupostDominant, restriccionsGrup } = calcularRecomanacions(perfils)
     let restaurantsAVotar: any[] = []
   
     try {
-  const topCuines = recomanacions
-  .filter(r => r.compatible)
-  .slice(0, 3)
+      // Filtrem les cuines compatibles directament des del 'ranking'
+      const topCuines = ranking
+        .filter(r => r.compatible)
+        .slice(0, 3)
 
-const params_query = new URLSearchParams({
-  cuines: topCuines.map(r => r.cuina.nom).join(','),
-  puntuacions: topCuines.map(r => r.puntuacio).join(','),
-  membres: topCuines.map(r => r.membres_a_favor.join('|')).join(','),
-  zona: plan.zona
-})
+      // 2. Afegim el 'preu_ideal' i les 'restriccions' a la crida real de la teva API
+      const params_query = new URLSearchParams({
+        cuines: topCuines.map(r => r.cuina.nom).join(','),
+        puntuacions: topCuines.map(r => r.puntuacio).join(','),
+        membres: topCuines.map(r => r.membres_a_favor.join('|')).join(','),
+        zona: plan.zona,
+        preu_ideal: pressupostDominant,                     // 👈 Afegit!
+        restriccions: restriccionsGrup.join(',')             // 👈 Afegit!
+      })
 
-const placesRes = await fetch(`/api/restaurants?${params_query}`)
+      const placesRes = await fetch(`/api/restaurants?${params_query}`)
       if (placesRes.ok) {
         const placesData = await placesRes.json()
         if (placesData.restaurants?.length > 0) {
-          const cuinesCompatibles = recomanacions.filter(r => r.compatible)
+          const cuinesCompatibles = ranking.filter(r => r.compatible)
           
           restaurantsAVotar = placesData.restaurants.map((r: any) => {
             const nomLower = r.nom.toLowerCase()
@@ -103,12 +108,12 @@ const placesRes = await fetch(`/api/restaurants?${params_query}`)
         }
       }
     } catch (e) {
-      // Si falla l'API, continuem amb el fallback
+      console.error("Error carregant de l'API, executant fallback estructural", e)
     }
   
-    // Fallback: usar les cuines del matchmaker
+    // Fallback: si l'API no troba res, usem les cuines directes de l'algorisme de recomanació
     if (restaurantsAVotar.length === 0) {
-      restaurantsAVotar = recomanacions
+      restaurantsAVotar = ranking
         .filter(r => r.compatible)
         .slice(0, 5)
         .map(r => ({
@@ -138,7 +143,6 @@ const placesRes = await fetch(`/api/restaurants?${params_query}`)
 
   return (
     <main className="min-h-screen bg-background">
-
       {/* Header */}
       <div className="bg-foreground px-8 pt-6 pb-5 rounded-b-3xl mb-8">
         <div className="max-w-3xl mx-auto flex justify-between items-center">
@@ -169,10 +173,12 @@ const placesRes = await fetch(`/api/restaurants?${params_query}`)
             ← Volver
           </a>
 
-          <div className="mb-8">
-            <h2 className="text-2xl font-medium mb-1">{plan.nombre}</h2>
-            <p className="text-muted-foreground text-sm">📍 {plan.zona} · 🔑 {plan.codigo}</p>
-          </div>
+          {plan && (
+            <div className="mb-8">
+              <h2 className="text-2xl font-medium mb-1">{plan.nombre}</h2>
+              <p className="text-muted-foreground text-sm">📍 {plan.zona} · 🔑 {plan.codigo}</p>
+            </div>
+          )}
 
           <div className="mb-8">
             <p className="text-sm text-muted-foreground mb-3">
@@ -190,56 +196,58 @@ const placesRes = await fetch(`/api/restaurants?${params_query}`)
             </div>
           </div>
 
-          <div className="bg-accent rounded-xl p-4 mb-6 text-center">
-  <p className="text-sm text-muted-foreground mb-1">Comparte este código</p>
-  <p className="text-2xl font-medium tracking-widest mb-3">{plan.codigo}</p>
-  <div className="flex gap-2">
-    <button
-      onClick={() => navigator.clipboard.writeText(plan.codigo)}
-      className="flex-1 py-2 rounded-lg border border-border bg-background text-sm hover:bg-background/80 transition-colors"
-    >
-      Copiar codi
-    </button>
-    <button
-      onClick={() => navigator.clipboard.writeText(
-        `${window.location.origin}/unirse?codigo=${plan.codigo}`
-      )}
-      className="flex-1 py-2 rounded-lg border border-border bg-background text-sm hover:bg-background/80 transition-colors"
-    >
-      🔗 Copiar enllaç
-    </button>
-  </div>
-</div>
+          {plan && (
+            <div className="bg-accent rounded-xl p-4 mb-6 text-center">
+              <p className="text-sm text-muted-foreground mb-1">Comparte este código</p>
+              <p className="text-2xl font-medium tracking-widest mb-3">{plan.codigo}</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => navigator.clipboard.writeText(plan.codigo)}
+                  className="flex-1 py-2 rounded-lg border border-border bg-background text-sm hover:bg-background/80 transition-colors"
+                >
+                  Copiar codi
+                </button>
+                <button
+                  onClick={() => navigator.clipboard.writeText(
+                    `${window.location.origin}/unirse?codigo=${plan.codigo}`
+                  )}
+                  className="flex-1 py-2 rounded-lg border border-border bg-background text-sm hover:bg-background/80 transition-colors"
+                >
+                  🔗 Copiar enllaç
+                </button>
+              </div>
+            </div>
+          )}
 
-          {userId === plan.creador_id ? (
-  votacionIniciada ? (
-    <div className="flex flex-col gap-3">
-      <button
-        onClick={() => router.push(`/plan/${params.id}/votar`)}
-        className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
-      >
-        Continuar votació →
-      </button>
-      <button
-        onClick={async () => {
-          await supabase.from('planes').update({ votacion_iniciada: false, cuines_seleccionades: null }).eq('id', params.id)
-          await supabase.from('votos').delete().eq('plan_id', params.id)
-          setVotacionIniciada(false)
-        }}
-        className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium text-sm"
-      >
-        🔄 Reiniciar votació
-      </button>
-    </div>
-  ) : (
-    <button
-      onClick={handleEmpezarVotacion}
-      disabled={iniciant}
-      className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-    >
-      {iniciant ? '🔄 Buscant restaurants...' : '¡Todo el grupo está! Empezar votación →'}
-    </button>
-  )
+          {plan && (userId === plan.creador_id ? (
+            votacionIniciada ? (
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => router.push(`/plan/${params.id}/votar`)}
+                  className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
+                >
+                  Continuar votació →
+                </button>
+                <button
+                  onClick={async () => {
+                    await supabase.from('planes').update({ votacion_iniciada: false, cuines_seleccionades: null }).eq('id', params.id)
+                    await supabase.from('votos').delete().eq('plan_id', params.id)
+                    setVotacionIniciada(false)
+                  }}
+                  className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium text-sm"
+                >
+                  🔄 Reiniciar votació
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleEmpezarVotacion}
+                disabled={iniciant}
+                className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {iniciant ? '🔄 Buscant restaurants...' : '¡Todo el grupo está! Empezar votación →'}
+              </button>
+            )
           ) : votacionIniciada ? (
             <button
               onClick={() => router.push(`/plan/${params.id}/votar`)}
@@ -251,7 +259,7 @@ const placesRes = await fetch(`/api/restaurants?${params_query}`)
             <div className="w-full py-4 rounded-xl border border-dashed border-border text-center">
               <p className="text-sm text-muted-foreground">⏳ Esperando a que el creador inicie la votación...</p>
             </div>
-          )}
+          ))}
         </div>
       </div>
     </main>
