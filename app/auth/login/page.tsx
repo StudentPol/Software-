@@ -62,15 +62,20 @@ router.push(redirect)
           </div>
 
           <div>
-            <label className="text-sm text-muted-foreground block mb-2">Contraseña</label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-          </div>
+  <div className="flex justify-between items-center mb-2">
+    <label className="text-sm text-muted-foreground">Contraseña</label>
+    <a href="/auth/forgot-password" className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2">
+      ¿Olvidaste tu contraseña?
+    </a>
+  </div>
+  <input
+    type="password"
+    placeholder="••••••••"
+    value={password}
+    onChange={e => setPassword(e.target.value)}
+    className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+  />
+</div>
 
           {error && <p className="text-sm text-red-500">{error}</p>}
 
