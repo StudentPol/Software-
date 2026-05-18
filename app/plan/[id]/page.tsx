@@ -71,13 +71,14 @@ export default function PlanPage() {
     let restaurantsAVotar: any[] = []
   
     try {
-      const topCuines = recomanacions
+  const topCuines = recomanacions
   .filter(r => r.compatible)
   .slice(0, 3)
-  .map(r => r.cuina.nom)
 
 const params_query = new URLSearchParams({
-  cuines: topCuines.join(','),
+  cuines: topCuines.map(r => r.cuina.nom).join(','),
+  puntuacions: topCuines.map(r => r.puntuacio).join(','),
+  membres: topCuines.map(r => r.membres_a_favor.join('|')).join(','),
   zona: plan.zona
 })
 
