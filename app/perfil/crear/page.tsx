@@ -31,9 +31,9 @@ const RESTRICCIONES = [
 ]
 
 const PRESUPUESTO = [
-  { valor: '€', label: '€ — Económico', sub: 'menos de 15€' },
-  { valor: '€€', label: '€€ — Moderado', sub: '15€ - 30€' },
-  { valor: '€€€', label: '€€€ — Premium', sub: 'más de 30€' },
+  { valor: '€', label: '€ — Económico', sub: 'menos de 20€' },
+  { valor: '€€', label: '€€ — Moderado', sub: '20€ - 40€' },
+  { valor: '€€€', label: '€€€ — Premium', sub: 'más de 40€' },
 ]
 
 export default function CrearPerfil() {
