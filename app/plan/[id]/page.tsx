@@ -87,26 +87,34 @@ export default function PlanPage() {
         restriccions: restriccionsGrup.join(',')             // 👈 Afegit!
       })
 
-      const placesRes = await fetch(`/api/restaurants?${params_query}`)
-      if (placesRes.ok) {
-        const placesData = await placesRes.json()
-        if (placesData.restaurants?.length > 0) {
-          const cuinesCompatibles = ranking.filter(r => r.compatible)
-          
-          restaurantsAVotar = placesData.restaurants.map((r: any) => {
-            const nomLower = r.nom.toLowerCase()
-            const cuinaCoincident = cuinesCompatibles.find(c =>
-              nomLower.includes(c.cuina.nom.toLowerCase()) ||
-              c.cuina.nom.toLowerCase().includes(nomLower)
-            )
-            const puntuacio = cuinaCoincident
-              ? cuinaCoincident.puntuacio
-              : Math.round(cuinesCompatibles.reduce((s, c) => s + c.puntuacio, 0) / (cuinesCompatibles.length || 1))
+      // 1. Crides a la teva nova API (que calcula els percentatges variables brutals: 94%, 82%...)
+const placesRes = await fetch(`/api/restaurants?${params_query}`)
+if (placesRes.ok) {
+  const placesData = await placesRes.json()
+  if (placesData.restaurants?.length > 0) {
+    const cuinesCompatibles = ranking.filter(r => r.compatible)
+    
+    restaurantsAVotar = placesData.restaurants.map((r: any) => {
+      const nomLower = r.nom.toLowerCase()
       
-            return { ...r, puntuacio, membres_a_favor: cuinaCoincident?.membres_a_favor || [] }
-          })
-        }
-      }
+      // 🚨 EL CRASH! Busques si el nom del restaurant de Google conté la paraula de la cuina
+      const cuinaCoincident = cuinesCompatibles.find(c =>
+        nomLower.includes(c.cuina.nom.toLowerCase()) ||
+        c.cuina.nom.toLowerCase().includes(nomLower)
+      )
+      
+      // 🚨 MALEÏDIT BUG: Si "cuinaCoincident" existeix, reescrius la puntuació del restaurant
+      // i li tornes a clavar la puntuació estàtica de la cuina (el famós 28).
+      // I si no la trobes, fas una mitjana de les cuines (que també et dona al voltant de 28).
+      const puntuacio = cuinaCoincident
+        ? cuinaCoincident.puntuacio  // 👈 AQUÍ ESTÀS STAMPANT EL 28 DE LA CUINA!
+        : Math.round(cuinesCompatibles.reduce((s, c) => s + c.puntuacio, 0) / (cuinesCompatibles.length || 1))
+
+      // Esborres el percentatge real de l'API (r.puntuacio) i hi poses el de dalt!
+      return { ...r, puntuacio, membres_a_favor: cuinaCoincident?.membres_a_favor || [] }
+    })
+  }
+}
     } catch (e) {
       console.error("Error carregant de l'API, executant fallback estructural", e)
     }

@@ -295,7 +295,7 @@ export default function VotarPage() {
               />
             </div>
             <p className="text-xs text-muted-foreground mt-1 text-right">
-              {restaurante.puntuacio}%<span>(Soc el test)</span> compatibilitat amb el grup
+              {restaurante.puntuacio}% compatibilitat amb el grup
             </p>
           </div>
         </div>
