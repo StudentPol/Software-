@@ -189,11 +189,14 @@ export default function VotarPage() {
             <div className="flex flex-col gap-3 mb-8">
               <p className="text-sm text-muted-foreground text-left">Els teus likes</p>
               {likes.map((r, i) => r && (
-                <div key={i} className="flex items-center gap-4 px-4 py-3 rounded-xl border border-border">
-                  <span className="text-2xl">{r.emoji}</span>
-                  <p className="font-medium">{r.nom}</p>
-                </div>
-              ))}
+  <div key={i} className="flex items-start gap-4 px-4 py-3 rounded-xl border border-border text-left">
+    {/* Afegim pt-0.5 perquè l'emoji s'alineï verticalment amb la primera línia de text */}
+    <span className="text-2xl pt-0.5 flex-shrink-0">{r.emoji}</span>
+    <div className="flex-1 min-w-0">
+      <p className="font-medium leading-snug break-words">{r.nom}</p>
+    </div>
+  </div>
+))}
             </div>
           ) : (
             <p className="text-muted-foreground mb-8">No has donat like a cap 😅</p>
