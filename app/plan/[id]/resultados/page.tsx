@@ -218,7 +218,8 @@ export default function ResultadosPage() {
                       <div>
   <p className="font-medium">{r.nombre || r.nom}</p>
   {r.adreca && (
-    <a href={`https://www.google.com/maps/place/?q=place_id:${r.id}`}
+  <a 
+    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.nom}, ${r.adreca}`)}&query_place_id=${r.id}`}
     target="_blank"
     rel="noopener noreferrer"
     className={`text-xs underline underline-offset-2 ${esGuanyador ? 'opacity-70' : 'text-muted-foreground'}`}
@@ -226,7 +227,7 @@ export default function ResultadosPage() {
   >
     📍 Google Maps
   </a>
-  )}
+)}
 </div>
                     </div>
                     <span className={`text-sm font-medium ${esGuanyador ? 'opacity-80' : 'text-muted-foreground'}`}>
