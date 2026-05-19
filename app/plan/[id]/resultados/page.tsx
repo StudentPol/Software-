@@ -200,8 +200,11 @@ export default function ResultadosPage() {
           {/* Ranking complet — Escenari 1 */}
           <div className="flex flex-col gap-3 mb-8">
             {resultados.map((r, i) => {
-              const pct = Math.round((r.votos / totalVotos) * 100)
+              // 🎯 CANVI CLAU: El percentatge real es calcula sobre el total de membres del grup
+              const divisorMembres = totalMembres || 1
+              const pctReal = Math.round((r.votos / divisorMembres) * 100)
               const esGuanyador = r.id === ganador?.id
+              
               return (
                 <div
                   key={r.id}
@@ -216,28 +219,31 @@ export default function ResultadosPage() {
                       <span className="text-lg">{medallas[i] || '  '}</span>
                       <span className="text-xl">{r.emoji}</span>
                       <div>
-  <p className="font-medium">{r.nombre || r.nom}</p>
-  {r.adreca && (
-  <a 
-    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.nom}, ${r.adreca}`)}&query_place_id=${r.id}`}
-    target="_blank"
-    rel="noopener noreferrer"
-    className={`text-xs underline underline-offset-2 ${esGuanyador ? 'opacity-70' : 'text-muted-foreground'}`}
-    onClick={e => e.stopPropagation()}
-  >
-    📍 Google Maps
-  </a>
-)}
-</div>
+                        <p className="font-medium">{r.nombre || r.nom}</p>
+                        {r.adreca && (
+                          <a 
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.nom}, ${r.adreca}`)}&query_place_id=${r.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`text-xs underline underline-offset-2 ${esGuanyador ? 'opacity-70' : 'text-muted-foreground'}`}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            📍 Google Maps
+                          </a>
+                        )}
+                      </div>
                     </div>
+                    {/* Mostrem el percentatge de suport al costat dels vots */}
                     <span className={`text-sm font-medium ${esGuanyador ? 'opacity-80' : 'text-muted-foreground'}`}>
-                      {r.votos} ✓
+                      {r.votos} {r.votos === 1 ? 'vot' : 'vots'} ({pctReal}%)
                     </span>
                   </div>
+                  
+                  {/* Contenidor de la barra */}
                   <div className={`h-2 rounded-full overflow-hidden ${esGuanyador ? 'bg-background/20' : 'bg-accent'}`}>
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${esGuanyador ? 'bg-background' : 'bg-foreground'}`}
-                      style={{ width: `${pct}%` }}
+                      className={`h-full rounded-full transition-all duration-500 ease-out ${esGuanyador ? 'bg-background' : 'bg-foreground'}`}
+                      style={{ width: `${Math.min(pctReal, 100)}%` }} // Posa el topall al 100% per seguretat visual
                     />
                   </div>
                 </div>
