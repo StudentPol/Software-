@@ -148,6 +148,7 @@ export async function GET(req: NextRequest) {
       foto: r.photos?.[0]?.photo_reference || null,
       emoji: emojiPerTipus(r.types || [], r.name),
       puntuacio: r.puntuacio_calculada, // El percentatge variable de cada local lligat al grup!
+      puntuacio_calculada: r.puntuacio_calculada,
       membres_a_favor: r.membres_a_favor,
     }))
 
