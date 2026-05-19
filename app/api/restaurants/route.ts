@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// Mantenim la teva funció d'emojis intacta tal com la tens
 function emojiPerTipus(types: string[], nom: string): string {
   const t = types.join(' ').toLowerCase()
   const n = nom.toLowerCase()
@@ -18,13 +19,59 @@ function emojiPerTipus(types: string[], nom: string): string {
   return '🍽️'
 }
 
+// 1. ADAPTEM EL TEU CÀLCUL INTEGRAT PERQUÈ COMBINI ABSOLUTAMENT TOT
+function calcularPercentatgeRestaurant(
+  place: any,
+  puntuacioBaseCuina: number,
+  preuIdealStr: string,
+  restriccionsGrup: string[]
+): number {
+  let puntsTotals = 0
+
+  // --- A. GUSTOS DEL GRUP (Pes: 50 punts de la nota base de cuines de la IA) ---
+  // Aprofitem la nota que ja havíem calculat per a aquesta cuina específica (0-100) i la ponderem a la meitat
+  puntsTotals += (puntuacioBaseCuina / 100) * 50
+
+  // --- B. ENCAIX DE PREU DE GOOGLE PLACES (Pes: 25 punts) ---
+  let preuRestaurantGoogle = '€€'
+  if (place.price_level !== undefined) {
+    if (place.price_level === 0 || place.price_level === 1) preuRestaurantGoogle = '€'
+    if (place.price_level === 2) preuRestaurantGoogle = '€€'
+    if (place.price_level >= 3) preuRestaurantGoogle = '€€€'
+
+    if (preuRestaurantGoogle === preuIdealStr) {
+      puntsTotals += 25 // Clava el preu del grup
+    } else {
+      puntsTotals += 5  // Penalització si desquadra la butxaca
+    }
+  } else {
+    puntsTotals += 15 // Si Google no té informat el preu, donem un vot de confiança neutre
+  }
+
+  // --- C. VALORACIÓ REALS DE CLIENTS - GOOGLE RATING (Pes: 25 punts) ---
+  // Un lloc de 5.0 estrelles s'emporta els 25 punts. Un de 4.0 estrelles se n'emporta 20.
+  const ratingReal = place.rating ?? 4.0
+  puntsTotals += (ratingReal / 5) * 25
+
+  // --- D. COMRPOVACIÓ EXTRA DE RESTRICCIONS CONTRA FALSOS POSITIUS ---
+  // Si hi ha restriccions al grup i el local té tags perillosos (ex: "bakery" o "pastisseria" per a celíacs)
+  // podem cobrir-nos l'esquena, encara que la cerca ja va filtrada.
+  const t = (place.types || []).join(' ').toLowerCase()
+  if (restriccionsGrup.includes('sense gluten') && (t.includes('bakery') || t.includes('meal_takeaway'))) {
+    // Si és una fleca convencional sense filtrar bé, reduïm dramàticament per seguretat
+    puntsTotals -= 20
+  }
+
+  // Retornem el percentatge final net formatat (0-100)
+  return Math.min(100, Math.max(0, Math.round(puntsTotals)))
+}
+
 export async function GET(req: NextRequest) {
   const cuinesParam = req.nextUrl.searchParams.get('cuines')
   const puntuacionsParam = req.nextUrl.searchParams.get('puntuacions')
   const membresParam = req.nextUrl.searchParams.get('membres')
   const zona = req.nextUrl.searchParams.get('zona')
   
-  // Capturem els nous paràmetres enviats
   const preuIdealStr = req.nextUrl.searchParams.get('preu_ideal') || '€€'
   const restriccionsParam = req.nextUrl.searchParams.get('restriccions') || ''
   
@@ -37,19 +84,16 @@ export async function GET(req: NextRequest) {
   const puntuacions = puntuacionsParam?.split(',').map(Number) || cuines.map(() => 50)
   const membres = membresParam?.split(',').map(m => m.split('|').filter(Boolean)) || cuines.map(() => [])
 
-  // Netegem les restriccions del grup per afegir-les de text a la cerca
-  const textRestriccions = restriccionsParam.split(',').filter(Boolean).join(' ')
-
-  // Convertim el text del preu ideal en el nivell numèric de Google Maps (1=€, 2=€€, 3=€€€, 4=€€€+)
-  const preuIdealNumeric = preuIdealStr === '€' ? 1 : preuIdealStr === '€€' ? 2 : preuIdealStr === '€€€' ? 3 : 4
+  // Guardem l'array net de restriccions per passar-lo a la funció matemàtica
+  const arrayRestriccions = restriccionsParam.split(',').map(r => r.trim().toLowerCase()).filter(Boolean)
+  const textRestriccions = arrayRestriccions.join(' ')
 
   try {
     const promises = cuines.map(cuina => {
-      // Si hi ha restriccions (ex: "sense gluten"), les posem entre cometes al final.
       const restriccionsNetejes = textRestriccions ? ` "${textRestriccions}"` : ''
       const queryText = `restaurant ${cuina} ${zona}${restriccionsNetejes}`.trim()
       
-      // Forcem &type=restaurant perquè Google elimini les pastisseries de soca-rel
+      // Nota: Deixem que Google busqui lliurement la seva llista (retorna fins a 20 o 30 locals per defecte de cop)
       return fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(queryText)}&type=restaurant&language=ca&key=${apiKey}`)
         .then(r => r.json())
         .then(data => ({ data, cuina }))
@@ -60,9 +104,7 @@ export async function GET(req: NextRequest) {
     const vistos = new Set<string>()
     const tots: any[] = []
 
-    // ==========================================
-    // AQUÍ ESTÀ EL NOU BLOC MODIFICAT 👇
-    // ==========================================
+    // 2. RECOLLIM TOTS ELS RESTAURANTS DE LES MULTIPLES CERQUES (Fins a 30 o 40 resultats combinats)
     resultats.forEach(({ data, cuina }) => {
       const idx = cuines.indexOf(cuina)
       const puntuacioBaseCuina = puntuacions[idx] || 50
@@ -72,53 +114,42 @@ export async function GET(req: NextRequest) {
         if (!vistos.has(r.place_id)) {
           vistos.add(r.place_id)
 
-          // 1. Comencem amb la puntuació base que tenia aquesta cuina per al grup
-          let coincidenciaFinal = puntuacioBaseCuina
-
-          // 2. Calculem el bonus/penalització de preu
-          const preuRestaurant = r.price_level !== undefined ? r.price_level : preuIdealNumeric
-          const diferenciaPreu = Math.abs(preuRestaurant - preuIdealNumeric)
-          
-          if (diferenciaPreu === 0) {
-            coincidenciaFinal += 15  // Clava el preu del grup? Li sumem 15 punts de coincidència
-          } else if (diferenciaPreu >= 2) {
-            coincidenciaFinal -= 15  // Està molt lluny de la butxaca del grup? Penalitzem amb 15 punts
-          }
-
-          // 3. Afegim un petit bonus per les estrelles de Google Maps (max +5 punts)
-          if (r.rating) {
-            coincidenciaFinal += (r.rating - 3) * 2.5
-          }
-
-          // Assegurem que el percentatge final quedi lògic entre 0 i 100
-          coincidenciaFinal = Math.max(0, Math.min(100, Math.round(coincidenciaFinal)))
+          // Cridem la nova funció que tritura i calcula el percentatge real amb seguretat per a TypeScript
+          const percentatgeCoincidencia = calcularPercentatgeRestaurant(
+            r,
+            puntuacioBaseCuina,
+            preuIdealStr,
+            arrayRestriccions
+          )
 
           tots.push({ 
             ...r, 
-            puntuacio_calculada: coincidenciaFinal, // Guardem la nota personalitzada del local
+            puntuacio_calculada: percentatgeCoincidencia,
             membres_a_favor: membresAFavor 
           })
         }
       })
     })
 
-    // Ordenem directament de major a menor coincidència calculada
-    const restaurants = tots
-      .sort((a, b) => b.puntuacio_calculada - a.puntuacio_calculada)
-      .slice(0, 5)
-      .map((r: any) => ({
-        id: r.place_id,
-        nom: r.name,
-        adreca: r.formatted_address?.split(',').slice(0, 2).join(',') || '',
-        rating: r.rating || null,
-        num_ressenyes: r.user_ratings_total || 0,
-        preu: r.price_level ? '€'.repeat(r.price_level) : null,
-        foto: r.photos?.[0]?.photo_reference || null,
-        emoji: emojiPerTipus(r.types || [], r.name),
-        puntuacio: r.puntuacio_calculada, // Ara el frontend rebrà el percentatge real i variable
-        membres_a_favor: r.membres_a_favor,
-      }))
-    // ==========================================
+    // 3. FLUX DE SELECCIÓ: Filtrem, ordenem de major a menor puntuació i ens quedem NOMÉS AMB ELS 5 MILLORS
+    const restaurantsFiltratsIOrdenats = tots
+      .filter((r: any) => r.puntuacio_calculada > 0) // Eliminem qualsevol 0% per seguretat
+      .sort((a, b) => b.puntuacio_calculada - a.puntuacio_calculada) // Ordenació decreixent (100% -> 0%)
+      .slice(0, 5) // Ens quedem amb el Top 5 real de tota la cerca massiva
+
+    // Mapegem el resultat final per enviar-lo polit al frontend
+    const restaurants = restaurantsFiltratsIOrdenats.map((r: any) => ({
+      id: r.place_id,
+      nom: r.name,
+      adreca: r.formatted_address?.split(',').slice(0, 2).join(',') || '',
+      rating: r.rating || null,
+      num_ressenyes: r.user_ratings_total || 0,
+      preu: r.price_level ? '€'.repeat(r.price_level) : null,
+      foto: r.photos?.[0]?.photo_reference || null,
+      emoji: emojiPerTipus(r.types || [], r.name),
+      puntuacio: r.puntuacio_calculada, // El percentatge variable de cada local lligat al grup!
+      membres_a_favor: r.membres_a_favor,
+    }))
 
     return NextResponse.json({ restaurants })
   } catch (error) {

@@ -327,3 +327,87 @@ export function restriccionsDelGrup(perfils: PerfilUsuari[]): string[] {
   const totes = perfils.flatMap(p => p.restriccions.map(normalitzarRestriccio))
   return [...new Set(totes)]
 }
+
+export interface RestaurantPlacesAPI {
+  place_id: string
+  name: string
+  rating?: number       // Rating de Google (0.0 - 5.0)
+  price_level?: number  // Nivell de preu de Google (0 - 4)
+  types: string[]       // Tipus de lloc de Google
+}
+
+/**
+ * Puntuació intel·ligent del local barrejant Google Places i dades del grup
+ */
+export function calcularCompatibilitatPlaces(
+  restaurant: RestaurantPlacesAPI,
+  perfils: any[],
+  pressupostDominant: string,
+  restriccionsGrup: string[],
+  categoriaCuinaAssignada: string
+): number {
+  
+  // --- 1. ESCUT DE SEGURETAT ABSOLUT (0% si es cola un fals positiu de Google) ---
+  // Busquem les dades de la cuina al teu catàleg global (TIPUS_CUINA)
+  const cuinaBase = TIPUS_CUINA.find(c => c.nom.toLowerCase() === categoriaCuinaAssignada.toLowerCase())
+  if (cuinaBase) {
+    const incompatibilitatsGraves = cuinaBase.restriccionsIncompatibles.filter(r =>
+      restriccionsGrup.includes(r)
+    )
+    if (incompatibilitatsGraves.length > 0) {
+      return 0 // Fora de la llista immediatament
+    }
+  }
+
+  let puntsTotals = 0
+
+  // --- 2. ADAPTACIÓ DE LA CARTA PER A RESTRICCIONS (Pes: 20 punts) ---
+  // Com que l'API ja busca llocs aptes, per defecte donem els 20 punts.
+  // Només si és una cuina de risc base (ex: Pizzeria per a un Celíac), baixem a 12 
+  // per reflectir que la carta serà més limitada o dependrà de substituts.
+  let puntsRestriccions = 20
+  if (restriccionsGrup.length > 0) {
+    const esCuinaDeRisc = (cuinaBase?.restriccionsIncompatibles.length ?? 0) > 0
+    if (esCuinaDeRisc) puntsRestriccions = 12
+  }
+  puntsTotals += puntsRestriccions
+
+  // --- 3. GUSTOS DEL GRUP (Pes: 35 punts) ---
+  const membresAFavor = perfils.filter(p =>
+    p.preferencies.some((pref: string) => pref.toLowerCase() === categoriaCuinaAssignada.toLowerCase())
+  ).length
+
+  const ratiGustos = membresAFavor / perfils.length
+  if (membresAFavor > 0) {
+    puntsTotals += ratiGustos * 35
+  } else {
+    puntsTotals += 15 // Cuina neutra (acceptable per a tothom, preferida per ningú)
+  }
+
+  // --- 4. VALORACIÓ REALS DE CLIENTS - GOOGLE RATING (Pes: 25 punts) ---
+  const ratingReal = restaurant.rating ?? 4.0
+  puntsTotals += (ratingReal / 5) * 25
+
+// --- 5. ENCAIX DE PREU (Pes: 20 punts) ---
+let preuRestaurantGoogle = '€€'
+
+// Protegim TypeScript comprovant primer que no sigui 'undefined'
+if (restaurant.price_level !== undefined) {
+  if (restaurant.price_level === 0 || restaurant.price_level === 1) preuRestaurantGoogle = '€'
+  if (restaurant.price_level === 2) preuRestaurantGoogle = '€€'
+  if (restaurant.price_level >= 3) preuRestaurantGoogle = '€€€'
+
+  // Si té preu i coincideix amb el que vol el grup, s'emporta els 20 punts nets
+  if (preuRestaurantGoogle === pressupostDominant) {
+    puntsTotals += 20
+  } else {
+    puntsTotals += 5  // Penalització si desquadra la butxaca
+  }
+} else {
+  // Si Google no té preu (és undefined), apliquem el vot de confiança de 12 punts
+  puntsTotals += 12
+}
+
+  // Retornem el percentatge net (0-100)
+  return Math.min(100, Math.max(0, Math.round(puntsTotals)))
+}

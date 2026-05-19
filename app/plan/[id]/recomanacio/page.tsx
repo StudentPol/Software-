@@ -289,66 +289,50 @@ export default function RecomanacioPage() {
             💡 Cap membre ha definit preferències al seu perfil. Tots els restaurants puntuen igual.
           </div>
         )}
-
-        {/* ==================================================== */}
-        {/* BOTÓ REFORMATAT SENSE BLOCK: S'EXECUTA SEMPRE        */}
-        {/* ==================================================== */}
-        <div className="mt-8">
+{/* CTA: anar a votar */}
+{!teRestaurants && (
           <button
             onClick={async () => {
-              console.log("🚀 BOTÓ PREMUT! Iniciant cerca a l'API...");
+              // 1. Extraiem les dades intel·ligents de la recomanació
+              const { ranking, pressupostDominant, restriccionsGrup } = calcularRecomanacions(perfils)
 
-              const { pressupostDominant, restriccionsGrup } = calcularRecomanacions(perfils)
-              const topCuines = compatibles.slice(0, 5)
+              const cuinesAVotar = compatibles.slice(0, 5).map(r => ({
+                id: r.cuina.id,
+                nom: r.cuina.nom,
+                emoji: r.cuina.emoji,
+                puntuacio: r.puntuacio,
+                membres_a_favor: r.membres_a_favor,
+              }))
 
+              // 2. Trucada a l'API enviant els filtres reals de preu i al·lèrgies
               try {
                 const params_query = new URLSearchParams({
-                  cuines: topCuines.map(c => c.cuina.nom).join(','),
-                  puntuacions: topCuines.map(c => c.puntuacio).join(','),
-                  membres: topCuines.map(c => c.membres_a_favor.join('|')).join(','),
+                  cuines: cuinesAVotar.map(c => c.nom).join(','),
                   zona: plan?.zona || '',
                   preu_ideal: pressupostDominant,
-                  restriccions: restriccionsGrup.join(',')
+                  restriccions: restriccionsGrup.join(',') // "Sense gluten,Vegà"
                 })
 
-                console.log("📡 Trucant a l'API amb paràmetres:", params_query.toString());
-                
-                const res = await fetch(`/api/restaurants?${params_query}`)
-                const data = await res.json()
-
-                console.log("🚀 L'API RESPON AIXÒ AL FRONTEND:", data);
-
-                if (!data.restaurants || data.restaurants.length === 0) {
-                  alert("No hem trobat restaurants disponibles a Google Maps amb aquests filtres.")
-                  return
-                }
-
-                console.log("💾 Guardant a Supabase a sobre de la llista antiga...");
-                const { error: updateError } = await supabase
-                  .from('planes')
-                  .update({ cuines_seleccionades: data.restaurants })
-                  .eq('id', params.id)
-                  
-                if (updateError) { 
-                  alert('Error guardant a Supabase: ' + updateError.message)
-                  return 
-                }
-
-                console.log("✅ Tot guardat! Redirigint a la pantalla de votació...");
-                router.push(`/plan/${params.id}/votar`)
-
+                // Això activarà la cerca filtrada del teu backend
+                await fetch(`/api/restaurants?${params_query}`)
               } catch (err) {
-                console.error("❌ Error crític en el procés:", err)
-                alert("Hi ha hagut un problema connectant amb el servei de restaurants.")
+                console.error("Error filtrant a l'API:", err)
               }
+
+              // 3. Guardem a la base de dades i anem a votar
+              const { error } = await supabase
+                .from('planes')
+                .update({ cuines_seleccionades: cuinesAVotar })
+                .eq('id', params.id)
+                
+              if (error) { alert('Error guardant: ' + error.message); return }
+              router.push(`/plan/${params.id}/votar`)
             }}
             className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
           >
-            Generar i votar restaurants de Google Maps →
+            Ara a votar restaurants específics →
           </button>
-        </div>
-        {/* ==================================================== */}
-
+        )}
       </div>
       </div>
     </main>
