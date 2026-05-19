@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Mantenim la teva funció d'emojis intacta tal com la tens
 function emojiPerTipus(types: string[], nom: string): string {
   const t = types.join(' ').toLowerCase()
   const n = nom.toLowerCase()
@@ -19,7 +18,6 @@ function emojiPerTipus(types: string[], nom: string): string {
   return '🍽️'
 }
 
-// 1. ADAPTEM EL TEU CÀLCUL INTEGRAT PERQUÈ COMBINI ABSOLUTAMENT TOT
 function calcularPercentatgeRestaurant(
   place: any,
   puntuacioBaseCuina: number,
@@ -28,11 +26,10 @@ function calcularPercentatgeRestaurant(
 ): number {
   let puntsTotals = 0
 
-  // --- A. GUSTOS DEL GRUP (Pes: 50 punts de la nota base de cuines de la IA) ---
-  // Aprofitem la nota que ja havíem calculat per a aquesta cuina específica (0-100) i la ponderem a la meitat
-  puntsTotals += (puntuacioBaseCuina / 100) * 50
+  // --- A. GUSTOS DEL GRUP (Pes: 40 punts) ---
+  puntsTotals += (puntuacioBaseCuina / 100) * 40
 
-  // --- B. ENCAIX DE PREU DE GOOGLE PLACES (Pes: 25 punts) ---
+  // --- B. ENCAIX DE PREU DE GOOGLE PLACES (Pes: 20 punts) ---
   let preuRestaurantGoogle = '€€'
   if (place.price_level !== undefined) {
     if (place.price_level === 0 || place.price_level === 1) preuRestaurantGoogle = '€'
@@ -40,29 +37,30 @@ function calcularPercentatgeRestaurant(
     if (place.price_level >= 3) preuRestaurantGoogle = '€€€'
 
     if (preuRestaurantGoogle === preuIdealStr) {
-      puntsTotals += 25 // Clava el preu del grup
+      puntsTotals += 20
     } else {
-      puntsTotals += 5  // Penalització si desquadra la butxaca
+      puntsTotals += 8
     }
   } else {
-    puntsTotals += 15 // Si Google no té informat el preu, donem un vot de confiança neutre
+    puntsTotals += 14
   }
 
-  // --- C. VALORACIÓ REALS DE CLIENTS - GOOGLE RATING (Pes: 25 punts) ---
-  // Un lloc de 5.0 estrelles s'emporta els 25 punts. Un de 4.0 estrelles se n'emporta 20.
+  // --- C. GOOGLE RATING (Pes: 40 punts per donar molta més variabilitat dinàmica) ---
+  // Afegim el nombre de ressenyes com a factor de desempat petit per evitar repeticions exactes
   const ratingReal = place.rating ?? 4.0
-  puntsTotals += (ratingReal / 5) * 25
+  const numRessenyes = place.user_ratings_total || 0
+  
+  // El rating compta fins a 38 punts
+  puntsTotals += (ratingReal / 5) * 38
+  // Les ressenyes donen un petit extra de fins a 2 punts (per premiar llocs coneguts)
+  puntsTotals += Math.min(2, (numRessenyes / 500) * 2)
 
-  // --- D. COMRPOVACIÓ EXTRA DE RESTRICCIONS CONTRA FALSOS POSITIUS ---
-  // Si hi ha restriccions al grup i el local té tags perillosos (ex: "bakery" o "pastisseria" per a celíacs)
-  // podem cobrir-nos l'esquena, encara que la cerca ja va filtrada.
+  // --- D. COMPROVACIÓ EXTRA DE RESTRICCIONS ---
   const t = (place.types || []).join(' ').toLowerCase()
   if (restriccionsGrup.includes('sense gluten') && (t.includes('bakery') || t.includes('meal_takeaway'))) {
-    // Si és una fleca convencional sense filtrar bé, reduïm dramàticament per seguretat
-    puntsTotals -= 20
+    puntsTotals -= 25
   }
 
-  // Retornem el percentatge final net formatat (0-100)
   return Math.min(100, Math.max(0, Math.round(puntsTotals)))
 }
 
@@ -84,7 +82,6 @@ export async function GET(req: NextRequest) {
   const puntuacions = puntuacionsParam?.split(',').map(Number) || cuines.map(() => 50)
   const membres = membresParam?.split(',').map(m => m.split('|').filter(Boolean)) || cuines.map(() => [])
 
-  // Guardem l'array net de restriccions per passar-lo a la funció matemàtica
   const arrayRestriccions = restriccionsParam.split(',').map(r => r.trim().toLowerCase()).filter(Boolean)
   const textRestriccions = arrayRestriccions.join(' ')
 
@@ -93,7 +90,6 @@ export async function GET(req: NextRequest) {
       const restriccionsNetejes = textRestriccions ? ` "${textRestriccions}"` : ''
       const queryText = `restaurant ${cuina} ${zona}${restriccionsNetejes}`.trim()
       
-      // Nota: Deixem que Google busqui lliurement la seva llista (retorna fins a 20 o 30 locals per defecte de cop)
       return fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(queryText)}&type=restaurant&language=ca&key=${apiKey}`)
         .then(r => r.json())
         .then(data => ({ data, cuina }))
@@ -104,7 +100,6 @@ export async function GET(req: NextRequest) {
     const vistos = new Set<string>()
     const tots: any[] = []
 
-    // 2. RECOLLIM TOTS ELS RESTAURANTS DE LES MULTIPLES CERQUES (Fins a 30 o 40 resultats combinats)
     resultats.forEach(({ data, cuina }) => {
       const idx = cuines.indexOf(cuina)
       const puntuacioBaseCuina = puntuacions[idx] || 50
@@ -114,7 +109,6 @@ export async function GET(req: NextRequest) {
         if (!vistos.has(r.place_id)) {
           vistos.add(r.place_id)
 
-          // Cridem la nova funció que tritura i calcula el percentatge real amb seguretat per a TypeScript
           const percentatgeCoincidencia = calcularPercentatgeRestaurant(
             r,
             puntuacioBaseCuina,
@@ -131,13 +125,11 @@ export async function GET(req: NextRequest) {
       })
     })
 
-    // 3. FLUX DE SELECCIÓ: Filtrem, ordenem de major a menor puntuació i ens quedem NOMÉS AMB ELS 5 MILLORS
     const restaurantsFiltratsIOrdenats = tots
-      .filter((r: any) => r.puntuacio_calculada > 0) // Eliminem qualsevol 0% per seguretat
-      .sort((a, b) => b.puntuacio_calculada - a.puntuacio_calculada) // Ordenació decreixent (100% -> 0%)
-      .slice(0, 5) // Ens quedem amb el Top 5 real de tota la cerca massiva
+      .filter((r: any) => r.puntuacio_calculada > 0)
+      .sort((a, b) => b.puntuacio_calculada - a.puntuacio_calculada)
+      .slice(0, 5)
 
-    // Mapegem el resultat final per enviar-lo polit al frontend
     const restaurants = restaurantsFiltratsIOrdenats.map((r: any) => ({
       id: r.place_id,
       nom: r.name,
@@ -147,8 +139,7 @@ export async function GET(req: NextRequest) {
       preu: r.price_level ? '€'.repeat(r.price_level) : null,
       foto: r.photos?.[0]?.photo_reference || null,
       emoji: emojiPerTipus(r.types || [], r.name),
-      puntuacio: r.puntuacio_calculada, // El percentatge variable de cada local lligat al grup!
-      puntuacio_calculada: r.puntuacio_calculada,
+      puntuacio: r.puntuacio_calculada, 
       membres_a_favor: r.membres_a_favor,
     }))
 

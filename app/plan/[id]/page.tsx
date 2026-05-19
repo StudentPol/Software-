@@ -67,59 +67,51 @@ export default function PlanPage() {
         pressupost: m.profiles.presupuesto || '€€',
       }))
   
-    // 1. Extraiem de forma desestructurada tot el que ens retorna la funció actualitzada
     const { ranking, pressupostDominant, restriccionsGrup } = calcularRecomanacions(perfils)
     let restaurantsAVotar: any[] = []
   
     try {
-      // Filtrem les cuines compatibles directament des del 'ranking'
       const topCuines = ranking
         .filter(r => r.compatible)
         .slice(0, 3)
 
-      // 2. Afegim el 'preu_ideal' i les 'restriccions' a la crida real de la teva API
       const params_query = new URLSearchParams({
         cuines: topCuines.map(r => r.cuina.nom).join(','),
         puntuacions: topCuines.map(r => r.puntuacio).join(','),
         membres: topCuines.map(r => r.membres_a_favor.join('|')).join(','),
         zona: plan.zona,
-        preu_ideal: pressupostDominant,                     // 👈 Afegit!
-        restriccions: restriccionsGrup.join(',')             // 👈 Afegit!
+        preu_ideal: pressupostDominant,
+        restriccions: restriccionsGrup.join(',')
       })
 
-      // 1. Crides a la teva nova API (que calcula els percentatges variables brutals: 94%, 82%...)
-const placesRes = await fetch(`/api/restaurants?${params_query}`)
-if (placesRes.ok) {
-  const placesData = await placesRes.json()
-  if (placesData.restaurants?.length > 0) {
-    const cuinesCompatibles = ranking.filter(r => r.compatible)
-    
-    restaurantsAVotar = placesData.restaurants.map((r: any) => {
-      const nomLower = r.nom.toLowerCase()
+      const placesRes = await fetch(`/api/restaurants?${params_query}`)
+      if (placesRes.ok) {
+        const placesData = await placesRes.json()
+        if (placesData.restaurants?.length > 0) {
+          const cuinesCompatibles = ranking.filter(r => r.compatible)
+          
+          restaurantsAVotar = placesData.restaurants.map((r: any) => {
+            const nomLower = r.nom.toLowerCase()
+            const cuinaCoincident = cuinesCompatibles.find(c =>
+              nomLower.includes(c.cuina.nom.toLowerCase()) ||
+              c.cuina.nom.toLowerCase().includes(nomLower)
+            )
       
-      // 🚨 EL CRASH! Busques si el nom del restaurant de Google conté la paraula de la cuina
-      const cuinaCoincident = cuinesCompatibles.find(c =>
-        nomLower.includes(c.cuina.nom.toLowerCase()) ||
-        c.cuina.nom.toLowerCase().includes(nomLower)
-      )
-      
-      // 🚨 MALEÏDIT BUG: Si "cuinaCoincident" existeix, reescrius la puntuació del restaurant
-      // i li tornes a clavar la puntuació estàtica de la cuina (el famós 28).
-      // I si no la trobes, fas una mitjana de les cuines (que també et dona al voltant de 28).
-      const puntuacio = cuinaCoincident
-        ? cuinaCoincident.puntuacio  // 👈 AQUÍ ESTÀS STAMPANT EL 28 DE LA CUINA!
-        : Math.round(cuinesCompatibles.reduce((s, c) => s + c.puntuacio, 0) / (cuinesCompatibles.length || 1))
-
-      // Esborres el percentatge real de l'API (r.puntuacio) i hi poses el de dalt!
-      return { ...r, puntuacio, membres_a_favor: cuinaCoincident?.membres_a_favor || [] }
-    })
-  }
-}
+            return { 
+              ...r, 
+              // Prioritzem sempre la puntuació real calculada de cada restaurant que ve de l'API
+              puntuacio: r.puntuacio !== undefined ? r.puntuacio : (cuinaCoincident?.puntuacio || 50), 
+              membres_a_favor: r.membres_a_favor && r.membres_a_favor.length > 0 
+                ? r.membres_a_favor 
+                : (cuinaCoincident?.membres_a_favor || [])
+            }
+          })
+        }
+      }
     } catch (e) {
       console.error("Error carregant de l'API, executant fallback estructural", e)
     }
   
-    // Fallback: si l'API no troba res, usem les cuines directes de l'algorisme de recomanació
     if (restaurantsAVotar.length === 0) {
       restaurantsAVotar = ranking
         .filter(r => r.compatible)
