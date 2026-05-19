@@ -34,17 +34,25 @@ function calcularPercentatgeRestaurant(
   if (place.price_level !== undefined) {
     if (place.price_level === 0 || place.price_level === 1) preuRestaurantGoogle = '€'
     if (place.price_level === 2) preuRestaurantGoogle = '€€'
-    if (place.price_level >= 3) preuRestaurantGoogle = '€€€'
+    if (place.price_level === 3) preuRestaurantGoogle = '€€€'
+    if (place.price_level >= 4) preuRestaurantGoogle = '€€€€'
 
     if (preuRestaurantGoogle === preuIdealStr) {
-      puntsTotals += 20
+      puntsTotals += 20 // Clava el pressupost exactament!
+    } else if (preuIdealStr === '€' && (preuRestaurantGoogle === '€€€' || preuRestaurantGoogle === '€€€€')) {
+      // FILTRE ANTI-RUÏNA: Si el grup vol barat (€) i el local és car o molt car,
+      // li clavem una penalització devastadora perquè no pugui pujar al Top 5.
+      puntsTotals -= 40 
+    } else if (preuIdealStr === '€€' && preuRestaurantGoogle === '€€€€') {
+      // Si el grup vol mig (€€) i el local és de luxe total (€€€€), també el penalitzem fort.
+      puntsTotals -= 25
     } else {
-      puntsTotals += 8
+      // Petites desviacions acceptables (ex: demanar €€ i que sigui €)
+      puntsTotals += 5 
     }
   } else {
-    puntsTotals += 14
+    puntsTotals += 12 // Vot de confiança neutre si Google no té el preu informat
   }
-
   // --- C. GOOGLE RATING (Pes: 40 punts per donar molta més variabilitat dinàmica) ---
   // Afegim el nombre de ressenyes com a factor de desempat petit per evitar repeticions exactes
   const ratingReal = place.rating ?? 4.0
