@@ -38,29 +38,23 @@ function calcularPercentatgeRestaurant(
     if (place.price_level >= 4) preuRestaurantGoogle = '€€€€'
 
     if (preuRestaurantGoogle === preuIdealStr) {
-      puntsTotals += 20 // Clava el pressupost exactament!
+      puntsTotals += 20 
     } else if (preuIdealStr === '€' && (preuRestaurantGoogle === '€€€' || preuRestaurantGoogle === '€€€€')) {
-      // FILTRE ANTI-RUÏNA: Si el grup vol barat (€) i el local és car o molt car,
-      // li clavem una penalització devastadora perquè no pugui pujar al Top 5.
       puntsTotals -= 40 
     } else if (preuIdealStr === '€€' && preuRestaurantGoogle === '€€€€') {
-      // Si el grup vol mig (€€) i el local és de luxe total (€€€€), també el penalitzem fort.
       puntsTotals -= 25
     } else {
-      // Petites desviacions acceptables (ex: demanar €€ i que sigui €)
       puntsTotals += 5 
     }
   } else {
-    puntsTotals += 12 // Vot de confiança neutre si Google no té el preu informat
+    puntsTotals += 12 
   }
-  // --- C. GOOGLE RATING (Pes: 40 punts per donar molta més variabilitat dinàmica) ---
-  // Afegim el nombre de ressenyes com a factor de desempat petit per evitar repeticions exactes
+  
+  // --- C. GOOGLE RATING (Pes: 40 punts) ---
   const ratingReal = place.rating ?? 4.0
   const numRessenyes = place.user_ratings_total || 0
   
-  // El rating compta fins a 38 punts
   puntsTotals += (ratingReal / 5) * 38
-  // Les ressenyes donen un petit extra de fins a 2 punts (per premiar llocs coneguts)
   puntsTotals += Math.min(2, (numRessenyes / 500) * 2)
 
   // --- D. COMPROVACIÓ EXTRA DE RESTRICCIONS ---
@@ -94,18 +88,18 @@ export async function GET(req: NextRequest) {
   const textRestriccions = arrayRestriccions.join(' ')
 
   try {
-    // TRADUCCIÓ: Convertim el 'preu_ideal' de text al codi numèric de Google
-    let maxPriceLevel = 2; // per defecte mitjà (€€) si hi ha qualsevol dubte
+    // 🎯 TRADUCCIÓ: Passem el text '€' al nivell numèric que demana Google de filtre
+    let maxPriceLevel = 2; 
     if (preuIdealStr === '€') maxPriceLevel = 1;
     if (preuIdealStr === '€€') maxPriceLevel = 2;
-    if (preuIdealStr === '€€€') maxPriceLevel = 4;
-    //if (preuIdealStr === '€€€') maxPriceLevel = 4;
+    if (preuIdealStr === '€€€') maxPriceLevel = 3;
+    if (preuIdealStr === '€€€€') maxPriceLevel = 4;
 
     const promises = cuines.map(cuina => {
       const restriccionsNetejes = textRestriccions ? ` "${textRestriccions}"` : ''
       const queryText = `restaurant ${cuina} ${zona}${restriccionsNetejes}`.trim()
       
-      // MILLORA: Afegim &minprice=0 i &maxprice=${maxPriceLevel} a la URL
+      // 🎯 FILTRE NATIU: Obliguem a Google a buscar només coses dins del pressupost del grup
       return fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(queryText)}&type=restaurant&minprice=0&maxprice=${maxPriceLevel}&language=ca&key=${apiKey}`)
         .then(r => r.json())
         .then(data => ({ data, cuina }))
@@ -146,33 +140,21 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => b.puntuacio_calculada - a.puntuacio_calculada)
       .slice(0, 5)
 
-      const restaurants = restaurantsFiltratsIOrdenats.map((r: any) => {
-        // Traducció del price_level de Google a rangs reals de preu en euros
-        let rangPreutext = null;
-        if (r.price_level === 0 || r.price_level === 1) {
-          rangPreutext = "Menys de 15€";
-        } else if (r.price_level === 2) {
-          rangPreutext = "15€ - 30€";
-        } else if (r.price_level >= 3) {
-          rangPreutext = "Més de 30€";
-        }
-  
-        return {
-          id: r.place_id,
-          nom: r.name,
-          adreca: r.formatted_address?.split(',').slice(0, 2).join(',') || '',
-          rating: r.rating || null,
-          num_ressenyes: r.user_ratings_total || 0,
-          
-          // Guardem el text entenedor en comptes de les icones genèriques '€€'
-          preu: rangPreutext, 
-          
-          foto: r.photos?.[0]?.photo_reference || null,
-          emoji: emojiPerTipus(r.types || [], r.name),
-          puntuacio: r.puntuacio_calculada, 
-          membres_a_favor: r.membres_a_favor,
-        };
-      })
+    const restaurants = restaurantsFiltratsIOrdenats.map((r: any) => ({
+      id: r.place_id,
+      nom: r.name,
+      adreca: r.formatted_address?.split(',').slice(0, 2).join(',') || '',
+      rating: r.rating || null,
+      num_ressenyes: r.user_ratings_total || 0,
+      
+      // 🎯 SEGURETAT ABSOLUTA: Mantenim el format d'euros clàssic sense xifres enganyoses
+      preu: r.price_level ? '€'.repeat(r.price_level) : null,
+      
+      foto: r.photos?.[0]?.photo_reference || null,
+      emoji: emojiPerTipus(r.types || [], r.name),
+      puntuacio: r.puntuacio_calculada, 
+      membres_a_favor: r.membres_a_favor,
+    }))
 
     return NextResponse.json({ restaurants })
   } catch (error) {
