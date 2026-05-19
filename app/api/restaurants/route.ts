@@ -97,8 +97,8 @@ export async function GET(req: NextRequest) {
 
     const promises = cuines.map(cuina => {
       const restriccionsNetejes = textRestriccions ? ` "${textRestriccions}"` : ''
-      const queryText = `restaurant ${cuina} ${zona}${restriccionsNetejes}`.trim()
-      
+// 🎯 Envoltem la zona amb cometes dobles per lligar el nom de la localitat compost
+const queryText = `restaurant ${cuina} "${zona}"${restriccionsNetejes}`.trim() 
       // 🎯 FILTRE NATIU: Obliguem a Google a buscar només coses dins del pressupost del grup
       return fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(queryText)}&type=restaurant&minprice=0&maxprice=${maxPriceLevel}&language=ca&key=${apiKey}`)
         .then(r => r.json())
