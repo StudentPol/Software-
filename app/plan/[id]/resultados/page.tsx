@@ -12,12 +12,18 @@ export default function ResultadosPage() {
   const [totalMembres, setTotalMembres] = useState(0)
   const [votantsActuals, setVotantsActuals] = useState(0)
   const [hiHaEmpat, setHiHaEmpat] = useState(false)
+  const [finalitzat, setFinalitzat] = useState(false)
+  const [finalitzant, setFinalitzant] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
   const params = useParams()
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
     async function cargarResultados() {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUserId(user?.id || null)
+
       const { data: planData } = await supabase
         .from('planes')
         .select('*, cuines_seleccionades')
@@ -25,9 +31,9 @@ export default function ResultadosPage() {
         .single()
 
       setPlan(planData)
+      setFinalitzat(planData?.finalitzat || false)
       const cuines = planData?.cuines_seleccionades || []
 
-      // Comptar membres totals i quants han votat (Escenari 2)
       const { data: membresData } = await supabase
         .from('miembros')
         .select('user_id')
@@ -44,8 +50,6 @@ export default function ResultadosPage() {
       const numVotants = uniqueVotants.size
       setVotantsActuals(numVotants)
 
-      // --- ESCENARI 1: Guanya el local amb més votacions entre els usuaris ---
-      // Comptar likes per restaurant
       const conteo: Record<string, number> = {}
       votosData?.forEach(v => {
         if (v.voto) {
@@ -53,16 +57,10 @@ export default function ResultadosPage() {
         }
       })
 
-      // --- ESCENARI 2: Si algú no ha votat, el seu vot va a la majoria ---
-      // Calcular quants membres NO han votat
       const noVotants = total - numVotants
-
       if (noVotants > 0 && cuines.length > 0) {
-        // Trobar quin restaurant té més likes fins ara (la "majoria")
-        // Els no-votants afegeixen el seu "vot" al guanyador provisional
         let maxLikes = 0
         let restaurantMajoria = cuines[0]?.id
-
         cuines.forEach((r: any) => {
           const likes = conteo[r.id] || 0
           if (likes > maxLikes) {
@@ -70,27 +68,21 @@ export default function ResultadosPage() {
             restaurantMajoria = r.id
           }
         })
-
-        // Afegir els vots dels no-votants al restaurant de la majoria
         if (restaurantMajoria) {
           conteo[restaurantMajoria] = (conteo[restaurantMajoria] || 0) + noVotants
         }
       }
 
-      // Construir ranking ordenat per likes DESC
       const ranking = cuines
         .map((r: any) => ({ ...r, nombre: r.nom, votos: conteo[r.id] || 0 }))
         .sort((a: any, b: any) => b.votos - a.votos)
 
       setResultados(ranking)
 
-      // --- ESCENARI 2 (empat): En cas d'empat, es decideix aleatòriament ---
       if (ranking.length > 0) {
         const maxVotos = ranking[0].votos
         const empatats = ranking.filter((r: any) => r.votos === maxVotos)
-
         if (empatats.length > 1) {
-          // Hi ha empat → decisió aleatòria
           setHiHaEmpat(true)
           const indexAleatori = Math.floor(Math.random() * empatats.length)
           setGanador(empatats[indexAleatori])
@@ -105,6 +97,17 @@ export default function ResultadosPage() {
 
     cargarResultados()
   }, [])
+
+  async function handleFinalitzarPla() {
+    setFinalitzant(true)
+    const ara = new Date().toISOString()
+    await supabase
+      .from('planes')
+      .update({ finalitzat: true, finalitzat_at: ara })
+      .eq('id', params.id)
+    setFinalitzat(true)
+    setFinalitzant(false)
+  }
 
   const totalVotos = resultados.reduce((s, r) => s + r.votos, 0) || 1
   const medallas = ['🥇', '🥈', '🥉']
@@ -152,7 +155,14 @@ export default function ResultadosPage() {
       <div className="max-w-3xl mx-auto px-8 pb-10">
         <div className="w-full max-w-md mx-auto">
 
-          {/* Guanyador — Escenari 1 */}
+          {/* Estat finalitzat */}
+          {finalitzat && (
+            <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-6 text-center">
+              <p className="text-green-800 font-medium text-sm">✓ Pla finalitzat — la quedada ha tingut lloc!</p>
+            </div>
+          )}
+
+          {/* Guanyador */}
           <div className="text-center mb-6">
             <div className="text-4xl mb-3">{ganador?.emoji}</div>
             <h2 className="text-2xl font-medium mb-1">
@@ -168,7 +178,7 @@ export default function ResultadosPage() {
             )}
           </div>
 
-          {/* Escenari 2: indicador de participació */}
+          {/* Participació */}
           {totalMembres > 0 && (
             <div className="bg-accent rounded-xl p-4 mb-6">
               <p className="text-sm font-medium mb-2">Participació del grup</p>
@@ -197,14 +207,12 @@ export default function ResultadosPage() {
             </div>
           )}
 
-          {/* Ranking complet — Escenari 1 */}
+          {/* Ranking */}
           <div className="flex flex-col gap-3 mb-8">
             {resultados.map((r, i) => {
-              // 🎯 CANVI CLAU: El percentatge real es calcula sobre el total de membres del grup
               const divisorMembres = totalMembres || 1
               const pctReal = Math.round((r.votos / divisorMembres) * 100)
               const esGuanyador = r.id === ganador?.id
-              
               return (
                 <div
                   key={r.id}
@@ -221,7 +229,7 @@ export default function ResultadosPage() {
                       <div>
                         <p className="font-medium">{r.nombre || r.nom}</p>
                         {r.adreca && (
-                          <a 
+                          <a
                             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.nom}, ${r.adreca}`)}&query_place_id=${r.id}`}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -233,17 +241,14 @@ export default function ResultadosPage() {
                         )}
                       </div>
                     </div>
-                    {/* Mostrem el percentatge de suport al costat dels vots */}
                     <span className={`text-sm font-medium ${esGuanyador ? 'opacity-80' : 'text-muted-foreground'}`}>
                       {r.votos} {r.votos === 1 ? 'vot' : 'vots'} ({pctReal}%)
                     </span>
                   </div>
-                  
-                  {/* Contenidor de la barra */}
                   <div className={`h-2 rounded-full overflow-hidden ${esGuanyador ? 'bg-background/20' : 'bg-accent'}`}>
                     <div
                       className={`h-full rounded-full transition-all duration-500 ease-out ${esGuanyador ? 'bg-background' : 'bg-foreground'}`}
-                      style={{ width: `${Math.min(pctReal, 100)}%` }} // Posa el topall al 100% per seguretat visual
+                      style={{ width: `${Math.min(pctReal, 100)}%` }}
                     />
                   </div>
                 </div>
@@ -251,31 +256,48 @@ export default function ResultadosPage() {
             })}
           </div>
 
+          {/* Botons */}
           <div className="flex flex-col gap-3">
-  <button
-    onClick={() => router.push(`/plan/${params.id}/recomanacio`)}
-    className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
-  >
-    🧠 Veure recomanació del grup
-  </button>
+
+            {/* Botó finalitzar — només el creador, i només si no està finalitzat */}
+            {userId === plan?.creador_id && !finalitzat && (
+              <button
+                onClick={handleFinalitzarPla}
+                disabled={finalitzant}
+                className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {finalitzant ? '⏳ Finalitzant...' : '✓ Marcar pla com a finalitzat'}
+              </button>
+            )}
+
             <button
-              onClick={async () => {
-                const { data: { user } } = await supabase.auth.getUser()
-                if (user) {
-                  await supabase.from('votos')
-                    .delete()
-                    .eq('plan_id', params.id)
-                    .eq('user_id', user.id)
-                }
-                router.push(`/plan/${params.id}/votar`)
-              }}
+              onClick={() => router.push(`/plan/${params.id}/recomanacio`)}
               className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
             >
-              Votar de nou
+              🧠 Veure recomanació del grup
             </button>
+
+            {!finalitzat && (
+              <button
+                onClick={async () => {
+                  const { data: { user } } = await supabase.auth.getUser()
+                  if (user) {
+                    await supabase.from('votos')
+                      .delete()
+                      .eq('plan_id', params.id)
+                      .eq('user_id', user.id)
+                  }
+                  router.push(`/plan/${params.id}/votar`)
+                }}
+                className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
+              >
+                Votar de nou
+              </button>
+            )}
+
             <button
               onClick={() => router.push('/')}
-              className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
+              className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
             >
               Tornar a l&apos;inici
             </button>
