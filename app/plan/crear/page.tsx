@@ -179,17 +179,27 @@ export default function CrearPlan() {
 </div>
 
             <div>
-              <label className="text-sm text-muted-foreground block mb-2">
-                Fecha aproximada
-                <span className="ml-2 text-xs">(opcional)</span>
-              </label>
-              <input
-                type="date"
-                value={fecha}
-                onChange={e => setFecha(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-              />
-            </div>
+  <label className="text-sm text-muted-foreground block mb-2">
+    Fecha aproximada
+    <span className="ml-2 text-xs">(opcional)</span>
+  </label>
+  <input
+    type="date"
+    value={fecha}
+    min={new Date().toISOString().split('T')[0]}
+    onChange={e => {
+      const seleccionada = e.target.value
+      const avui = new Date().toISOString().split('T')[0]
+      if (seleccionada >= avui) setFecha(seleccionada)
+    }}
+    className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+  />
+  {fecha && (
+    <p className="text-xs text-muted-foreground mt-1.5">
+      📅 {new Date(fecha + 'T12:00:00').toLocaleDateString('ca-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+    </p>
+  )}
+</div>
 
             {error && <p className="text-sm text-red-500">{error}</p>}
 
