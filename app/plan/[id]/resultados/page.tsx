@@ -296,6 +296,13 @@ export default function ResultadosPage() {
             )}
 
             <button
+  onClick={() => router.push(`/plan/${params.id}/chat`)}
+  className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
+>
+  💬 Chat del grup
+</button>
+
+            <button
               onClick={() => router.push('/')}
               className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
             >
