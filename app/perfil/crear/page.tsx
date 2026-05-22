@@ -99,8 +99,8 @@ export default function CrearPerfil() {
        setError('La fecha de nacimiento es obligatoria')
        return
      }
-     if (edad === null || edad < 14) {
-       setError('Debes tener al menos 14 años para usar esta aplicación')
+     if (edad === null || edad < 14 || edad > 110) {
+       setError(edad !== null && edad < 14 ? 'Debes tener al menos 14 años para usar esta aplicación' : 'Fecha de nacimiento no válida')
        return
      }
     setCargando(true)
@@ -212,7 +212,8 @@ export default function CrearPerfil() {
                   type="date"
                   value={fechaNacimiento}
                   onChange={e => setFechaNacimiento(e.target.value)}
-                  max={new Date().toISOString().split('T')[0]}
+                  min={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 110); return d.toISOString().split('T')[0] })()}
+                  max={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 14); return d.toISOString().split('T')[0] })()}
                   className="flex-1 px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               </div>
