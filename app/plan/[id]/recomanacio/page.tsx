@@ -293,8 +293,7 @@ export default function RecomanacioPage() {
 {!teRestaurants && (
           <button
             onClick={async () => {
-              // 1. Extraiem les dades intel·ligents de la recomanació
-              const { ranking, pressupostDominant, restriccionsGrup } = calcularRecomanacions(perfils)
+              const { pressupostDominant, restriccionsGrup } = calcularRecomanacions(perfils)
 
               const cuinesAVotar = compatibles.slice(0, 5).map(r => ({
                 id: r.cuina.id,
@@ -304,27 +303,35 @@ export default function RecomanacioPage() {
                 membres_a_favor: r.membres_a_favor,
               }))
 
-              // 2. Trucada a l'API enviant els filtres reals de preu i al·lèrgies
+              // 1. Cridem l'API i USEM el resultat amb dades reals de Google Places
+              let restaurantsAGuardar = cuinesAVotar
               try {
                 const params_query = new URLSearchParams({
                   cuines: cuinesAVotar.map(c => c.nom).join(','),
+                  puntuacions: cuinesAVotar.map(c => c.puntuacio).join(','),
+                  membres: cuinesAVotar.map(c => c.membres_a_favor.join('|')).join(','),
                   zona: plan?.zona || '',
                   preu_ideal: pressupostDominant,
-                  restriccions: restriccionsGrup.join(',') // "Sense gluten,Vegà"
+                  restriccions: restriccionsGrup.join(','),
                 })
-
-                // Això activarà la cerca filtrada del teu backend
-                await fetch(`/api/restaurants?${params_query}`)
+                const res = await fetch(`/api/restaurants?${params_query}`)
+                if (res.ok) {
+                  const data = await res.json()
+                  if (data.restaurants && data.restaurants.length > 0) {
+                    // Usem les dades reals de Google (amb adreca, foto, rating, etc.)
+                    restaurantsAGuardar = data.restaurants
+                  }
+                }
               } catch (err) {
-                console.error("Error filtrant a l'API:", err)
+                console.error("Error cridant l'API de restaurants:", err)
               }
 
-              // 3. Guardem a la base de dades i anem a votar
+              // 2. Guardem a Supabase amb totes les dades reals
               const { error } = await supabase
                 .from('planes')
-                .update({ cuines_seleccionades: cuinesAVotar })
+                .update({ cuines_seleccionades: restaurantsAGuardar })
                 .eq('id', params.id)
-                
+
               if (error) { alert('Error guardant: ' + error.message); return }
               router.push(`/plan/${params.id}/votar`)
             }}
