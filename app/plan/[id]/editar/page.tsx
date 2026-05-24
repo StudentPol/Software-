@@ -57,6 +57,14 @@ export default function EditarPlan() {
 
     setSubiendoFoto(true)
 
+    // Borrar la foto anterior del storage (usar la URL guardada en BD, no el estado)
+    const { data: planActual } = await supabase
+      .from('planes').select('cover_url').eq('id', planId).single()
+    if (planActual?.cover_url) {
+      const oldPath = planActual.cover_url.split('/plan-covers/')[1]?.split('?')[0]
+      if (oldPath) await supabase.storage.from('plan-covers').remove([oldPath])
+    }
+
     const formData = new FormData()
     formData.append('file', file)
     formData.append('bucket', 'plan-covers')
@@ -79,8 +87,10 @@ export default function EditarPlan() {
   }
 
   async function deleteCover() {
-    if (coverUrl) {
-      const path = coverUrl.split('/plan-covers/')[1]
+    const { data: planActual } = await supabase
+      .from('planes').select('cover_url').eq('id', planId).single()
+    if (planActual?.cover_url) {
+      const path = planActual.cover_url.split('/plan-covers/')[1]?.split('?')[0]
       if (path) await supabase.storage.from('plan-covers').remove([path])
     }
     await supabase.from('planes').update({ cover_url: null }).eq('id', planId)
