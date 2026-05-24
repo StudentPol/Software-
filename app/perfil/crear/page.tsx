@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { AvatarUpload } from '@/components/Avatar'
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +43,7 @@ export default function CrearPerfil() {
   const [preferencias, setPreferencias] = useState<string[]>([])
   const [restricciones, setRestricciones] = useState<string[]>([])
   const [presupuesto, setPresupuesto] = useState('€€')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
   const [cargandoPerfil, setCargandoPerfil] = useState(true)
   const [error, setError] = useState('')
@@ -62,10 +64,11 @@ export default function CrearPerfil() {
 
       if (perfilData) {
         setNombre(perfilData.nombre || '')
-        setFechaNacimiento(perfilData.fecha_nacimiento || '') // TODO: descomentar cuando exista la columna en BD
+        setFechaNacimiento(perfilData.fecha_nacimiento || '')
         setPreferencias(perfilData.preferencias || [])
         setRestricciones(perfilData.restricciones || [])
         setPresupuesto(perfilData.presupuesto || '€€')
+        setAvatarUrl(perfilData.avatar_url || null)
         setEsEdicion(true)
       }
 
@@ -87,22 +90,43 @@ export default function CrearPerfil() {
     }
   }
 
+  /**
+   * Sube la imagen al endpoint /api/avatar y devuelve la URL pública.
+   */
+  async function uploadAvatar(file: File): Promise<string | null> {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('bucket', 'avatars')
+    formData.append('path', `${user.id}.${file.name.split('.').pop() || 'jpg'}`)
+
+    const res = await fetch('/api/avatar', { method: 'POST', body: formData })
+    if (!res.ok) {
+      const { error } = await res.json()
+      setError(error || 'Error al subir la foto')
+      return null
+    }
+    const { url } = await res.json()
+    return url
+  }
+
   async function handleGuardar() {
     if (!nombre.trim()) {
       setError('El nombre es obligatorio')
       return
     }
 
-    // TODO: activar cuando exista la columna fecha_nacimiento en BD
     const edad = calcularEdad(fechaNacimiento)
-     if (!fechaNacimiento) {
-       setError('La fecha de nacimiento es obligatoria')
-       return
-     }
-     if (edad === null || edad < 14 || edad > 110) {
-       setError(edad !== null && edad < 14 ? 'Debes tener al menos 14 años para usar esta aplicación' : 'Fecha de nacimiento no válida')
-       return
-     }
+    if (!fechaNacimiento) {
+      setError('La fecha de nacimiento es obligatoria')
+      return
+    }
+    if (edad === null || edad < 14 || edad > 110) {
+      setError(edad !== null && edad < 14 ? 'Debes tener al menos 14 años para usar esta aplicación' : 'Fecha de nacimiento no válida')
+      return
+    }
     setCargando(true)
     setError('')
 
@@ -112,10 +136,11 @@ export default function CrearPerfil() {
     const { error } = await supabase.from('profiles').upsert({
       id: user.id,
       nombre,
-      fecha_nacimiento: fechaNacimiento, // TODO: descomentar cuando exista la columna en BD
+      fecha_nacimiento: fechaNacimiento,
       preferencias,
       restricciones,
       presupuesto,
+      avatar_url: avatarUrl,
     })
 
     if (error) {
@@ -176,13 +201,18 @@ export default function CrearPerfil() {
           )}
 
           <div className="text-center mb-8">
-            <div className="flex justify-center mb-3">
-              {esEdicion ? (
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-foreground/70"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              ) : (
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-foreground/70"><path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v6"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M6 14a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4v-2.5"/></svg>
-              )}
+            {/* Avatar upload */}
+            <div className="flex justify-center mb-5">
+              <AvatarUpload
+                currentUrl={avatarUrl}
+                nombre={nombre || undefined}
+                size={88}
+                tipo="usuario"
+                onUpload={uploadAvatar}
+                onChange={setAvatarUrl}
+              />
             </div>
+
             <h1 className="text-2xl font-medium mb-2">
               {esEdicion ? 'Editar perfil' : 'Crea tu perfil'}
             </h1>
