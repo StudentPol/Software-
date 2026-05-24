@@ -90,9 +90,23 @@ export default function CrearPerfil() {
     }
   }
 
-  /**
-   * Sube la imagen al endpoint /api/avatar y devuelve la URL pública.
-   */
+  /** Borra la foto de perfil: elimina el archivo del bucket y pone avatar_url a null */
+  async function deleteAvatar() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    // Borrar el archivo del bucket (el path es userId.ext)
+    if (avatarUrl) {
+      const path = avatarUrl.split('/avatars/')[1]
+      if (path) await supabase.storage.from('avatars').remove([path])
+    }
+
+    // Actualizar la BD
+    await supabase.from('profiles').update({ avatar_url: null }).eq('id', user.id)
+    setAvatarUrl(null)
+  }
+
+  /** Sube la imagen al endpoint /api/avatar y devuelve la URL pública. */
   async function uploadAvatar(file: File): Promise<string | null> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
@@ -209,7 +223,8 @@ export default function CrearPerfil() {
                 size={88}
                 tipo="usuario"
                 onUpload={uploadAvatar}
-                onChange={setAvatarUrl}
+                onChange={(url) => setAvatarUrl(url)}
+                onDelete={deleteAvatar}
               />
             </div>
 
