@@ -112,11 +112,6 @@ export default function ResultadosPage() {
   const totalVotos = resultados.reduce((s, r) => s + r.votos, 0) || 1
   const medallas = ['🥇', '🥈', '🥉']
 
-  async function handleLogout() {
-    await supabase.auth.signOut()
-    router.push('/auth/login')
-  }
-
   if (cargando) {
     return (
       <main className="min-h-screen flex items-center justify-center">
@@ -131,24 +126,33 @@ export default function ResultadosPage() {
       {/* Header */}
       <div className="bg-foreground px-8 pt-6 pb-5 rounded-b-3xl mb-8">
         <div className="max-w-3xl mx-auto flex justify-between items-center">
+          {/* Botó tornar — fletxa esquerra */}
+          <button
+            onClick={() => router.push('/')}
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/15 border-none cursor-pointer hover:bg-white/25 transition-colors"
+            title="Tornar a l'inici"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5"/>
+              <path d="M12 19l-7-7 7-7"/>
+            </svg>
+          </button>
+
           <div className="flex items-center gap-3">
-            <svg width="36" height="36" viewBox="0 0 22 22" fill="none">
+            <svg width="28" height="28" viewBox="0 0 22 22" fill="none">
               <circle cx="7" cy="8" r="2.5" fill="rgba(255,255,255,0.5)" />
               <circle cx="15" cy="8" r="2.5" fill="rgba(255,255,255,0.8)" />
               <circle cx="11" cy="6" r="2.5" fill="rgba(255,255,255,0.5)" opacity="0.8" />
               <path d="M4 17c0-2.2 2.7-4 6-4" stroke="rgba(255,255,255,0.7)" strokeWidth="1.8" strokeLinecap="round" />
               <path d="M18 17c0-2.2-2.7-4-6-4" stroke="rgba(255,255,255,0.7)" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
-            <span style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: '700', color: 'var(--background)' }}>
+            <span style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: '700', color: 'var(--background)' }}>
               Planify
             </span>
           </div>
-          <button
-            onClick={handleLogout}
-            className="bg-white/15 border-none rounded-xl px-3.5 py-1.5 text-background text-sm cursor-pointer hover:bg-white/25 transition-colors"
-          >
-            Salir
-          </button>
+
+          {/* Espai per equilibrar el layout */}
+          <div className="w-9" />
         </div>
       </div>
 
@@ -306,18 +310,12 @@ export default function ResultadosPage() {
             )}
 
             <button
-  onClick={() => router.push(`/plan/${params.id}/chat`)}
-  className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
->
-  💬 Chat del grup
-</button>
-
-            <button
-              onClick={() => router.push('/')}
+              onClick={() => router.push(`/plan/${params.id}/chat`)}
               className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
             >
-              Tornar a l&apos;inici
+              💬 Chat del grup
             </button>
+
           </div>
 
         </div>
