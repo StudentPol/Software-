@@ -44,6 +44,7 @@ export default function CrearPerfil() {
   const [restricciones, setRestricciones] = useState<string[]>([])
   const [presupuesto, setPresupuesto] = useState('€€')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [subiendoFoto, setSubiendoFoto] = useState(false)
   const [cargando, setCargando] = useState(false)
   const [cargandoPerfil, setCargandoPerfil] = useState(true)
   const [error, setError] = useState('')
@@ -106,8 +107,9 @@ export default function CrearPerfil() {
     setAvatarUrl(null)
   }
 
-  /** Sube la imagen al endpoint /api/avatar y devuelve la URL pública. */
+  /** Sube la imagen y guarda la URL en la BD inmediatamente */
   async function uploadAvatar(file: File): Promise<string | null> {
+    setSubiendoFoto(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
@@ -120,9 +122,15 @@ export default function CrearPerfil() {
     if (!res.ok) {
       const { error } = await res.json()
       setError(error || 'Error al subir la foto')
+      setSubiendoFoto(false)
       return null
     }
     const { url } = await res.json()
+
+    // Guardar en BD al momento, sin esperar a "Guardar cambios"
+    await supabase.from('profiles').upsert({ id: user.id, avatar_url: url })
+
+    setSubiendoFoto(false)
     return url
   }
 
@@ -335,10 +343,10 @@ export default function CrearPerfil() {
 
             <button
               onClick={handleGuardar}
-              disabled={cargando}
+              disabled={cargando || subiendoFoto}
               className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {cargando ? 'Guardando...' : esEdicion ? 'Guardar cambios →' : 'Crear perfil y continuar →'}
+              {subiendoFoto ? 'Subiendo foto...' : cargando ? 'Guardando...' : esEdicion ? 'Guardar cambios →' : 'Crear perfil y continuar →'}
             </button>
           </div>
         </div>
