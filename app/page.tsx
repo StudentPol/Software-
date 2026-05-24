@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { Avatar } from '@/components/Avatar'
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +14,8 @@ export default function Home() {
   const [cargando, setCargando] = useState(true)
   const [eliminando, setEliminando] = useState<string | null>(null)
   const [refresh, setRefresh] = useState(0)
+  const [menuAbierto, setMenuAbierto] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -126,16 +129,49 @@ export default function Home() {
               Planify
             </span>
           </div>
-          <div className="flex flex-col items-end gap-1.5">
-            <span className="text-sm text-background/60 font-medium flex items-center gap-1.5">
-              Hola, {perfil?.nombre || 'amigo'} 👋
-            </span>
+          {/* Avatar con menú desplegable */}
+          <div className="relative" ref={menuRef}>
             <button
-              onClick={handleLogout}
-              className="bg-white/15 border-none rounded-xl px-3.5 py-1.5 text-background text-sm cursor-pointer hover:bg-white/25 transition-colors"
+              onClick={() => setMenuAbierto(v => !v)}
+              className="flex items-center gap-2.5 bg-white/10 hover:bg-white/20 transition-colors rounded-2xl pl-3 pr-2 py-1.5 border-none cursor-pointer"
             >
-              Salir
+              <span className="text-sm text-background/80 font-medium">
+                {perfil?.nombre || 'amigo'}
+              </span>
+              <Avatar
+                src={perfil?.avatar_url}
+                nombre={perfil?.nombre}
+                size={32}
+                tipo="usuario"
+              />
             </button>
+
+            {menuAbierto && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setMenuAbierto(false)}
+                />
+                <div className="absolute right-0 top-full mt-2 z-20 bg-background rounded-2xl shadow-lg border border-border overflow-hidden min-w-[160px]">
+                  <a
+                    href="/perfil/crear"
+                    className="flex items-center gap-2.5 px-4 py-3 text-sm text-foreground hover:bg-accent transition-colors no-underline"
+                    onClick={() => setMenuAbierto(false)}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Ver perfil
+                  </a>
+                  <div className="border-t border-border" />
+                  <button
+                    onClick={() => { setMenuAbierto(false); handleLogout() }}
+                    className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors bg-transparent border-none cursor-pointer text-left"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    Cerrar sesión
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
