@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-
-
+import { AvatarUpload } from '@/components/Avatar'
 
 function generarCodigo() {
   const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
@@ -46,6 +45,7 @@ export default function CrearPlan() {
   const [nombre, setNombre] = useState('')
   const [zona, setZona] = useState('')
   const [fecha, setFecha] = useState('')
+  const [coverUrl, setCoverUrl] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
   const [codigoGenerado, setCodigoGenerado] = useState('')
@@ -58,18 +58,37 @@ export default function CrearPlan() {
     router.push('/auth/login')
   }
 
+  /** Sube la imagen de portada al bucket plan-covers */
+  async function uploadCover(file: File): Promise<string | null> {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('bucket', 'plan-covers')
+    formData.append('path', `${user.id}-${Date.now()}.${file.name.split('.').pop() || 'jpg'}`)
+
+    const res = await fetch('/api/avatar', { method: 'POST', body: formData })
+    if (!res.ok) {
+      const { error } = await res.json()
+      setError(error || 'Error al subir la imagen')
+      return null
+    }
+    const { url } = await res.json()
+    return url
+  }
+
   async function handleCrear() {
     if (!nombre.trim()) {
       setError('El nombre del plan es obligatorio')
       return
     }
-    setCargando(true)
-    setError('')
-
     if (!zona.trim()) {
       setError('La zona és obligatòria')
       return
     }
+    setCargando(true)
+    setError('')
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/auth/login'); return }
@@ -82,6 +101,7 @@ export default function CrearPlan() {
       fecha,
       codigo,
       creador_id: user.id,
+      cover_url: coverUrl,
     }).select().single()
 
     if (error) {
@@ -125,13 +145,13 @@ export default function CrearPlan() {
                 Copiar código
               </button>
               <button
-  onClick={() => navigator.clipboard.writeText(
-    `${window.location.origin}/unirse?codigo=${codigoGenerado}`
-  )}
-  className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
->
-  🔗 Copiar enlace de invitación
-</button>
+                onClick={() => navigator.clipboard.writeText(
+                  `${window.location.origin}/unirse?codigo=${codigoGenerado}`
+                )}
+                className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
+              >
+                🔗 Copiar enlace de invitación
+              </button>
               <button
                 onClick={() => router.push(`/plan/${planId}`)}
                 className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity"
@@ -156,6 +176,28 @@ export default function CrearPlan() {
           <h2 className="text-2xl font-medium mb-8">Crear plan</h2>
 
           <div className="flex flex-col gap-6">
+
+            {/* Foto de portada del plan */}
+            <div>
+              <label className="text-sm text-muted-foreground block mb-3">
+                Foto del plan
+                <span className="ml-2 text-xs">(opcional)</span>
+              </label>
+              <div className="flex items-center gap-4">
+                <AvatarUpload
+                  currentUrl={coverUrl}
+                  nombre={nombre || 'Plan'}
+                  size={72}
+                  tipo="plan"
+                  onUpload={uploadCover}
+                  onChange={setCoverUrl}
+                />
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Ponle una cara a tu plan. Si no subes ninguna, se mostrará un icono por defecto.
+                </p>
+              </div>
+            </div>
+
             <div>
               <label className="text-sm text-muted-foreground block mb-2">Nombre del plan</label>
               <input
@@ -168,38 +210,38 @@ export default function CrearPlan() {
             </div>
 
             <div>
-  <label className="text-sm text-muted-foreground block mb-2">Zona o barri</label>
-  <input
-    type="text"
-    placeholder="Ej: Gràcia, Eixample, Poblenou..."
-    value={zona}
-    onChange={e => setZona(e.target.value)}
-    className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-  />
-</div>
+              <label className="text-sm text-muted-foreground block mb-2">Zona o barri</label>
+              <input
+                type="text"
+                placeholder="Ej: Gràcia, Eixample, Poblenou..."
+                value={zona}
+                onChange={e => setZona(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
 
             <div>
-  <label className="text-sm text-muted-foreground block mb-2">
-    Fecha aproximada
-    <span className="ml-2 text-xs">(opcional)</span>
-  </label>
-  <input
-    type="date"
-    value={fecha}
-    min={new Date().toISOString().split('T')[0]}
-    onChange={e => {
-      const seleccionada = e.target.value
-      const avui = new Date().toISOString().split('T')[0]
-      if (seleccionada >= avui) setFecha(seleccionada)
-    }}
-    className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-  />
-  {fecha && (
-    <p className="text-xs text-muted-foreground mt-1.5">
-      📅 {new Date(fecha + 'T12:00:00').toLocaleDateString('ca-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-    </p>
-  )}
-</div>
+              <label className="text-sm text-muted-foreground block mb-2">
+                Fecha aproximada
+                <span className="ml-2 text-xs">(opcional)</span>
+              </label>
+              <input
+                type="date"
+                value={fecha}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={e => {
+                  const seleccionada = e.target.value
+                  const avui = new Date().toISOString().split('T')[0]
+                  if (seleccionada >= avui) setFecha(seleccionada)
+                }}
+                className="w-full px-4 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+              {fecha && (
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  📅 {new Date(fecha + 'T12:00:00').toLocaleDateString('ca-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </p>
+              )}
+            </div>
 
             {error && <p className="text-sm text-red-500">{error}</p>}
 
