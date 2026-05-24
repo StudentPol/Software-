@@ -60,7 +60,7 @@ export default function EditarPlan() {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('bucket', 'plan-covers')
-    formData.append('path', `${planId}.${file.name.split('.').pop() || 'jpg'}`)
+    formData.append('path', `${planId}-${Date.now()}.${file.name.split('.').pop() || 'jpg'}`)
 
     const res = await fetch('/api/avatar', { method: 'POST', body: formData })
     if (!res.ok) {

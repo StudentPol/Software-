@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface AvatarProps {
   src?: string | null
@@ -74,8 +74,19 @@ export function AvatarUpload({
   onDelete,
 }: AvatarUploadProps) {
   const [url, setUrl] = useState<string | null>(currentUrl || null)
+  const [cacheBuster, setCacheBuster] = useState(() => Date.now())
   const [uploading, setUploading] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  // Sync if parent passes a new currentUrl (e.g. after loading from DB)
+  useEffect(() => {
+    setUrl(currentUrl || null)
+  }, [currentUrl])
+
+  // Append cache-busting param so browser always loads the latest image
+  const displayUrl = url
+    ? `${url.split('?')[0]}?t=${cacheBuster}`
+    : null
 
   async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -83,8 +94,11 @@ export function AvatarUpload({
     setUploading(true)
     const result = await onUpload(file)
     if (result) {
-      setUrl(result)
-      onChange?.(result)
+      const fresh = result.split('?')[0]
+      const busted = `${fresh}?t=${Date.now()}`
+      setUrl(fresh)
+      setCacheBuster(Date.now())
+      onChange?.(fresh)
     }
     setUploading(false)
     e.target.value = ''
@@ -97,6 +111,7 @@ export function AvatarUpload({
     setDeleting(true)
     await onDelete?.()
     setUrl(null)
+    setCacheBuster(Date.now())
     onChange?.(null)
     setDeleting(false)
   }
@@ -119,7 +134,7 @@ export function AvatarUpload({
           disabled={busy}
         />
 
-        <Avatar src={url} nombre={nombre} size={size} tipo={tipo} />
+        <Avatar src={displayUrl} nombre={nombre} size={size} tipo={tipo} />
 
         {/* Overlay al hover */}
         <div
@@ -140,7 +155,7 @@ export function AvatarUpload({
           )}
         </div>
 
-        {/* Badge cámara (cuando no hay foto) */}
+      {/* Badge cámara (cuando no hay foto) */}
         {!url && (
           <div
             className="absolute bottom-0 right-0 bg-foreground text-background rounded-full flex items-center justify-center border-2 border-background"
