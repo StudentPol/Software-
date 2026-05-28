@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 // Dataset de 10 ressenyes reals de prova (subtasca #31)
-export const DATASET_POC = [
+const DATASET_POC = [
   {
     restaurant: 'La Taula Verda',
     esperado: 'APT',
