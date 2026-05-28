@@ -182,7 +182,7 @@ export default function PoCCeliacsPage() {
               <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', marginBottom: '6px' }}>{r.resum}</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                 {r.evidències?.map((e, i) => (
-                  <span key={i} style={{ fontSize: '11px', background: 'var(--accent)', border: '0.5px solid var(--border)', borderRadius: '4px', padding: '2px 6px', color: 'var(--muted-foreground)' }}>"{e}"</span>
+                  <span key={i} style={{ fontSize: '11px', background: 'var(--accent)', border: '0.5px solid var(--border)', borderRadius: '4px', padding: '2px 6px', color: 'var(--muted-foreground)' }}>&quot;{e}&quot;</span>
                 ))}
               </div>
             </>
@@ -193,7 +193,7 @@ export default function PoCCeliacsPage() {
       {/* Log */}
       {log.length > 0 && (
         <div style={{ marginTop: '1.5rem', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '10px 12px' }}>
-          <p style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', marginBottom: '8px' }}>Log d'execució</p>
+          <p style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', marginBottom: '8px' }}>Log d&apos;execució</p>
           {log.map((l, i) => (
             <div key={i} style={{ fontSize: '11px', fontFamily: 'monospace', padding: '3px 0', borderBottom: '0.5px solid var(--border)', color: 'var(--muted-foreground)' }}>{l}</div>
           ))}
@@ -218,7 +218,7 @@ export default function PoCCeliacsPage() {
             <strong>Metodologia:</strong> 4 restaurants amb 3 ressenyes cadascun (12 ressenyes totals). Dataset cobreix els 3 escenaris: APT, NO_APT i INCERT.
           </p>
           <p style={{ fontSize: '13px', color: 'var(--muted-foreground)', lineHeight: 1.6, marginBottom: '8px' }}>
-            <strong>Observació clau:</strong> El model identifica mencions implícites ("van cuinar en una olla a part") i retorna INCERT quan no hi ha informació sobre gluten, evitant falsos positius.
+            <strong>Observació clau:</strong> El model identifica mencions implícites (&quot;van cuinar en una olla a part&quot;) i retorna INCERT quan no hi ha informació sobre gluten, evitant falsos positius.
           </p>
           <p style={{ fontSize: '13px', color: 'var(--muted-foreground)', lineHeight: 1.6 }}>
             <strong>Propera integració:</strong> Afegir el camp <code>seguretat_celiacs</code> a <code>/api/restaurants</code> i incorporar-ho com a factor a <code>calcularPercentatgeRestaurant()</code>.
