@@ -127,8 +127,9 @@ export default function CrearPerfil() {
     }
     const { url } = await res.json()
 
-    // Guardar en BD al momento, sin esperar a "Guardar cambios"
-    await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id)
+// Guardar en BD al momento, sin esperar a "Guardar cambios"
+const { error: updateError } = await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id)
+console.log('Error update avatar:', updateError)
 
     setSubiendoFoto(false)
     return url
