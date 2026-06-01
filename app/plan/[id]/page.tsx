@@ -71,9 +71,9 @@ export default function PlanPage() {
     let restaurantsAVotar: any[] = []
 
     try {
-      const topCuines = recomanacions
-        .filter(r => r.compatible)
-        .slice(0, 3)
+      const topCuines = recomanacions.ranking
+  .filter(r => r.compatible)
+  .slice(0, 3)
 
       const params_query = new URLSearchParams({
         cuines: topCuines.map(r => r.cuina.nom).join(','),
