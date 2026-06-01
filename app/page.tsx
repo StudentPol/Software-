@@ -80,7 +80,7 @@ export default function Home() {
     return (
       <div className={`rounded-2xl bg-background border overflow-hidden ${finalitzat ? 'border-border opacity-70' : 'border-border'}`}>
         {/* Foto de portada */}
-        <a href={`/plan/${plan.id}/resultados`} className="block no-underline">
+        <a href={`/plan/${plan.id}`} className="block no-underline">
           <div className="w-full h-32 bg-accent relative overflow-hidden">
             {plan.cover_url ? (
               <img
@@ -105,7 +105,7 @@ export default function Home() {
 
         {/* Info + accions */}
         <div className="px-4 py-3 flex items-center justify-between gap-2">
-          <a href={`/plan/${plan.id}/resultados`} className="flex-1 min-w-0 no-underline">
+        <a href={`/plan/${plan.id}`} className="flex-1 min-w-0 no-underline">
             <p className="text-sm font-medium text-foreground truncate">{plan.nombre}</p>
             <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5 truncate">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="shrink-0"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
