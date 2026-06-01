@@ -263,6 +263,16 @@ export default function ResultadosPage() {
           {/* Botons */}
           <div className="flex flex-col gap-3">
 
+            {/* Botó editar — només el creador */}
+            {userId === plan?.creador_id && (
+              <button
+                onClick={() => router.push(`/plan/${params.id}/editar`)}
+                className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
+              >
+                ✏️ Editar plan
+              </button>
+            )}
+
             {/* Botó finalitzar — només el creador, i només si no està finalitzat */}
             {userId === plan?.creador_id && !finalitzat && (
               <button

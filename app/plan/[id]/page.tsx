@@ -3,321 +3,216 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useParams, useRouter } from 'next/navigation'
+import { calcularRecomanacions, type PerfilUsuari } from '@/lib/recomanacio'
 
-export default function ResultadosPage() {
-  const [resultados, setResultados] = useState<any[]>([])
+export default function PlanPage() {
   const [plan, setPlan] = useState<any>(null)
-  const [ganador, setGanador] = useState<any>(null)
+  const [miembros, setMiembros] = useState<any[]>([])
   const [cargando, setCargando] = useState(true)
-  const [totalMembres, setTotalMembres] = useState(0)
-  const [votantsActuals, setVotantsActuals] = useState(0)
-  const [hiHaEmpat, setHiHaEmpat] = useState(false)
-  const [finalitzat, setFinalitzat] = useState(false)
-  const [finalitzant, setFinalitzant] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
+  const [votacionIniciada, setVotacionIniciada] = useState(false)
+  const [iniciant, setIniciant] = useState(false)
   const params = useParams()
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
-    async function cargarResultados() {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUserId(user?.id || null)
-
+    async function cargarPlan() {
       const { data: planData } = await supabase
         .from('planes')
-        .select('*, cuines_seleccionades')
+        .select('*')
         .eq('id', params.id)
         .single()
 
+      if (!planData) { router.push('/'); return }
+      const { data: { user } } = await supabase.auth.getUser()
+      setUserId(user?.id || null)
       setPlan(planData)
-      setFinalitzat(planData?.finalitzat || false)
-      const cuines = planData?.cuines_seleccionades || []
+      setVotacionIniciada(planData.votacion_iniciada || false)
 
-      const { data: membresData } = await supabase
+      const { data: miembrosData } = await supabase
         .from('miembros')
-        .select('user_id')
-        .eq('plan_id', params.id)
-      const total = membresData?.length || 0
-      setTotalMembres(total)
-
-      const { data: votosData } = await supabase
-        .from('votos')
-        .select('restaurante_id, voto, user_id')
+        .select('user_id, profiles(nombre, preferencias, restricciones, presupuesto)')
         .eq('plan_id', params.id)
 
-      const uniqueVotants = new Set(votosData?.map((v: any) => v.user_id) || [])
-      const numVotants = uniqueVotants.size
-      setVotantsActuals(numVotants)
-
-      const conteo: Record<string, number> = {}
-      votosData?.forEach(v => {
-        if (v.voto) {
-          conteo[v.restaurante_id] = (conteo[v.restaurante_id] || 0) + 1
-        }
-      })
-
-      const noVotants = total - numVotants
-      if (noVotants > 0 && cuines.length > 0) {
-        let maxLikes = 0
-        let restaurantMajoria = cuines[0]?.id
-        cuines.forEach((r: any) => {
-          const likes = conteo[r.id] || 0
-          if (likes > maxLikes) {
-            maxLikes = likes
-            restaurantMajoria = r.id
-          }
-        })
-        if (restaurantMajoria) {
-          conteo[restaurantMajoria] = (conteo[restaurantMajoria] || 0) + noVotants
-        }
-      }
-
-      const ranking = cuines
-        .map((r: any) => ({ ...r, nombre: r.nom, votos: conteo[r.id] || 0 }))
-        .sort((a: any, b: any) => b.votos - a.votos)
-
-      setResultados(ranking)
-
-      if (ranking.length > 0) {
-        const maxVotos = ranking[0].votos
-        const empatats = ranking.filter((r: any) => r.votos === maxVotos)
-        if (empatats.length > 1) {
-          setHiHaEmpat(true)
-          const indexAleatori = Math.floor(Math.random() * empatats.length)
-          setGanador(empatats[indexAleatori])
-        } else {
-          setHiHaEmpat(false)
-          setGanador(ranking[0])
-        }
-      }
-
+      setMiembros(miembrosData || [])
       setCargando(false)
     }
-
-    cargarResultados()
+    cargarPlan()
   }, [])
-
-  async function handleFinalitzarPla() {
-    setFinalitzant(true)
-    const ara = new Date().toISOString()
-    await supabase
-      .from('planes')
-      .update({ finalitzat: true, finalitzat_at: ara })
-      .eq('id', params.id)
-    setFinalitzat(true)
-    setFinalitzant(false)
-  }
-
-  const totalVotos = resultados.reduce((s, r) => s + r.votos, 0) || 1
-  const medallas = ['🥇', '🥈', '🥉']
 
   if (cargando) {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Calculant resultats...</p>
+        <p className="text-muted-foreground">Cargando plan...</p>
       </main>
     )
   }
 
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.push('/auth/login')
+  }
+
+  async function handleEmpezarVotacion() {
+    setIniciant(true)
+
+    const perfils: PerfilUsuari[] = miembros
+      .filter((m: any) => m.profiles)
+      .map((m: any) => ({
+        id: m.user_id,
+        nom: m.profiles.nombre || 'Usuari',
+        preferencies: m.profiles.preferencias || [],
+        restriccions: m.profiles.restricciones || [],
+        pressupost: m.profiles.presupuesto || '€€',
+      }))
+
+    const recomanacions = calcularRecomanacions(perfils)
+    let restaurantsAVotar: any[] = []
+
+    try {
+      const topCuines = recomanacions
+        .filter(r => r.compatible)
+        .slice(0, 3)
+
+      const params_query = new URLSearchParams({
+        cuines: topCuines.map(r => r.cuina.nom).join(','),
+        puntuacions: topCuines.map(r => r.puntuacio).join(','),
+        membres: topCuines.map(r => r.membres_a_favor.join('|')).join(','),
+        zona: plan.zona
+      })
+
+      const placesRes = await fetch(`/api/restaurants?${params_query}`)
+
+      if (placesRes.ok) {
+        const placesData = await placesRes.json()
+        if (placesData.restaurants?.length > 0) {
+          restaurantsAVotar = placesData.restaurants
+        }
+      }
+    } catch (e) {
+      // fallback
+    }
+
+    if (restaurantsAVotar.length === 0) {
+      restaurantsAVotar = [
+        { id: '1', nom: 'La Pepita', adreca: null, rating: 4.5, num_ressenyes: 320, preu: '€€', emoji: '🥗', foto: null, puntuacio: 85, membres_a_favor: [] },
+        { id: '2', nom: 'Bar Brutal', adreca: null, rating: 4.7, num_ressenyes: 210, preu: '€€€', emoji: '🍷', foto: null, puntuacio: 75, membres_a_favor: [] },
+        { id: '3', nom: 'Parking Pizza', adreca: null, rating: 4.4, num_ressenyes: 480, preu: '€€', emoji: '🍕', foto: null, puntuacio: 70, membres_a_favor: [] },
+        { id: '4', nom: 'Flax & Kale', adreca: null, rating: 4.3, num_ressenyes: 390, preu: '€€€', emoji: '🌱', foto: null, puntuacio: 60, membres_a_favor: [] },
+        { id: '5', nom: 'La Cova Fumada', adreca: null, rating: 4.6, num_ressenyes: 150, preu: '€', emoji: '🦑', foto: null, puntuacio: 50, membres_a_favor: [] },
+      ]
+    }
+
+    await supabase
+      .from('planes')
+      .update({
+        cuines_seleccionades: restaurantsAVotar,
+        votacion_iniciada: true,
+      })
+      .eq('id', params.id)
+
+    router.push(`/plan/${params.id}/votar`)
+  }
+
   return (
     <main className="min-h-screen bg-background">
-
-      {/* Header */}
       <div className="bg-foreground px-8 pt-6 pb-5 rounded-b-3xl mb-8">
         <div className="max-w-3xl mx-auto flex justify-between items-center">
-          {/* Botó tornar — fletxa esquerra */}
-          <button
-            onClick={() => router.push('/')}
-            className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/15 border-none cursor-pointer hover:bg-white/25 transition-colors"
-            title="Tornar a l'inici"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5"/>
-              <path d="M12 19l-7-7 7-7"/>
-            </svg>
-          </button>
-
           <div className="flex items-center gap-3">
-            <svg width="28" height="28" viewBox="0 0 22 22" fill="none">
+            <svg width="36" height="36" viewBox="0 0 22 22" fill="none">
               <circle cx="7" cy="8" r="2.5" fill="rgba(255,255,255,0.5)" />
               <circle cx="15" cy="8" r="2.5" fill="rgba(255,255,255,0.8)" />
               <circle cx="11" cy="6" r="2.5" fill="rgba(255,255,255,0.5)" opacity="0.8" />
               <path d="M4 17c0-2.2 2.7-4 6-4" stroke="rgba(255,255,255,0.7)" strokeWidth="1.8" strokeLinecap="round" />
               <path d="M18 17c0-2.2-2.7-4-6-4" stroke="rgba(255,255,255,0.7)" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
-            <span style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: '700', color: 'var(--background)' }}>
+            <span style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: '700', color: 'var(--background)' }}>
               Planify
             </span>
           </div>
-
-          {/* Espai per equilibrar el layout */}
-          <div className="w-9" />
+          <button onClick={handleLogout}
+            className="bg-white/15 border-none rounded-xl px-3.5 py-1.5 text-background text-sm cursor-pointer hover:bg-white/25 transition-colors">
+            Salir
+          </button>
         </div>
       </div>
 
       <div className="max-w-3xl mx-auto px-8 pb-10">
         <div className="w-full max-w-md mx-auto">
+          <a href="/" className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-block">
+            ← Volver
+          </a>
 
-          {/* Estat finalitzat */}
-          {finalitzat && (
-            <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-6 text-center">
-              <p className="text-green-800 font-medium text-sm">✓ Pla finalitzat — la quedada ha tingut lloc!</p>
-            </div>
-          )}
+          <div className="mb-8">
+            <h2 className="text-2xl font-medium mb-1">{plan.nombre}</h2>
+            <p className="text-muted-foreground text-sm">📍 {plan.zona} · 🔑 {plan.codigo}</p>
+          </div>
 
-          {/* Guanyador */}
-          <div className="text-center mb-6">
-            <div className="text-4xl mb-3">{ganador?.emoji}</div>
-            <h2 className="text-2xl font-medium mb-1">
-              {ganador?.nombre || ganador?.nom} guanya!
-            </h2>
-            <p className="text-muted-foreground text-sm">
-              {plan?.nombre} · {plan?.zona}
+          <div className="mb-8">
+            <p className="text-sm text-muted-foreground mb-3">
+              Miembros del plan ({miembros.length})
             </p>
-            {hiHaEmpat && (
-              <div className="mt-3 bg-accent rounded-xl px-4 py-2 text-sm text-muted-foreground">
-                🎲 Hi havia empat — guanyador decidit aleatòriament
-              </div>
-            )}
+            <div className="flex flex-col gap-2">
+              {miembros.map((m, i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-lg border border-border">
+                  <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-sm font-medium">
+                    {m.profiles?.nombre?.[0]?.toUpperCase() || '?'}
+                  </div>
+                  <p className="font-medium">{m.profiles?.nombre || 'Usuario'}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Participació */}
-          {totalMembres > 0 && (
-            <div className="bg-accent rounded-xl p-4 mb-6">
-              <p className="text-sm font-medium mb-2">Participació del grup</p>
-              <div className="flex justify-center gap-2 mb-2">
-                {Array.from({ length: totalMembres }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      i < votantsActuals
-                        ? 'bg-foreground text-background'
-                        : 'bg-border text-muted-foreground'
-                    }`}
-                  >
-                    {i < votantsActuals ? '✓' : '—'}
-                  </div>
-                ))}
+          <div className="bg-accent rounded-xl p-4 mb-6 text-center">
+            <p className="text-sm text-muted-foreground mb-1">Comparte este código</p>
+            <p className="text-2xl font-medium tracking-widest mb-3">{plan.codigo}</p>
+            <div className="flex gap-2">
+              <button onClick={() => navigator.clipboard.writeText(plan.codigo)}
+                className="flex-1 py-2 rounded-lg border border-border bg-background text-sm hover:bg-background/80 transition-colors">
+                Copiar codi
+              </button>
+              <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/unirse?codigo=${plan.codigo}`)}
+                className="flex-1 py-2 rounded-lg border border-border bg-background text-sm hover:bg-background/80 transition-colors">
+                🔗 Copiar enllaç
+              </button>
+            </div>
+          </div>
+
+          {userId === plan.creador_id ? (
+            votacionIniciada ? (
+              <div className="flex flex-col gap-3">
+                <button onClick={() => router.push(`/plan/${params.id}/votar`)}
+                  className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity">
+                  Continuar votació →
+                </button>
+                <button
+                  onClick={async () => {
+                    await supabase.from('planes').update({ votacion_iniciada: false, cuines_seleccionades: null }).eq('id', params.id)
+                    await supabase.from('votos').delete().eq('plan_id', params.id)
+                    setVotacionIniciada(false)
+                  }}
+                  className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium text-sm">
+                  🔄 Reiniciar votació
+                </button>
               </div>
-              <p className="text-sm text-muted-foreground text-center">
-                {votantsActuals} de {totalMembres} han votat
-              </p>
-              {votantsActuals < totalMembres && (
-                <p className="text-xs text-muted-foreground text-center mt-1">
-                  Els vots que faltaven han anat a la majoria
-                </p>
-              )}
+            ) : (
+              <button onClick={handleEmpezarVotacion} disabled={iniciant}
+                className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
+                {iniciant ? '🔄 Buscant restaurants...' : '¡Todo el grupo está! Empezar votación →'}
+              </button>
+            )
+          ) : votacionIniciada ? (
+            <button onClick={() => router.push(`/plan/${params.id}/votar`)}
+              className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity">
+              ¡Empieza a votar! →
+            </button>
+          ) : (
+            <div className="w-full py-4 rounded-xl border border-dashed border-border text-center">
+              <p className="text-sm text-muted-foreground">⏳ Esperando a que el creador inicie la votación...</p>
             </div>
           )}
-
-          {/* Ranking */}
-          <div className="flex flex-col gap-3 mb-8">
-            {resultados.map((r, i) => {
-              const divisorMembres = totalMembres || 1
-              const pctReal = Math.round((r.votos / divisorMembres) * 100)
-              const esGuanyador = r.id === ganador?.id
-              return (
-                <div
-                  key={r.id}
-                  className={`border rounded-xl p-4 transition-all ${
-                    esGuanyador
-                      ? 'border-foreground bg-foreground text-background'
-                      : 'border-border'
-                  }`}
-                >
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg">{medallas[i] || '  '}</span>
-                      <span className="text-xl">{r.emoji}</span>
-                      <div>
-                        <p className="font-medium">{r.nombre || r.nom}</p>
-                        {r.adreca && (
-                          <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.nom}, ${r.adreca}`)}&query_place_id=${r.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`text-xs underline underline-offset-2 ${esGuanyador ? 'opacity-70' : 'text-muted-foreground'}`}
-                            onClick={e => e.stopPropagation()}
-                          >
-                            📍 Google Maps
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                    <span className={`text-sm font-medium ${esGuanyador ? 'opacity-80' : 'text-muted-foreground'}`}>
-                      {r.votos} {r.votos === 1 ? 'vot' : 'vots'} ({pctReal}%)
-                    </span>
-                  </div>
-                  <div className={`h-2 rounded-full overflow-hidden ${esGuanyador ? 'bg-background/20' : 'bg-accent'}`}>
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ease-out ${esGuanyador ? 'bg-background' : 'bg-foreground'}`}
-                      style={{ width: `${Math.min(pctReal, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Botons */}
-          <div className="flex flex-col gap-3">
-
-            {/* Botó editar — només el creador */}
-            {userId === plan?.creador_id && (
-              <button
-                onClick={() => router.push(`/plan/${params.id}/editar`)}
-                className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
-              >
-                ✏️ Editar plan
-              </button>
-            )}
-
-            {/* Botó finalitzar — només el creador, i només si no està finalitzat */}
-            {userId === plan?.creador_id && !finalitzat && (
-              <button
-                onClick={handleFinalitzarPla}
-                disabled={finalitzant}
-                className="w-full py-3 rounded-lg bg-foreground text-background font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {finalitzant ? '⏳ Finalitzant...' : '✓ Marcar pla com a finalitzat'}
-              </button>
-            )}
-
-            <button
-              onClick={() => router.push(`/plan/${params.id}/recomanacio`)}
-              className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
-            >
-              🧠 Veure recomanació del grup
-            </button>
-
-            {!finalitzat && (
-              <button
-                onClick={async () => {
-                  const { data: { user } } = await supabase.auth.getUser()
-                  if (user) {
-                    await supabase.from('votos')
-                      .delete()
-                      .eq('plan_id', params.id)
-                      .eq('user_id', user.id)
-                  }
-                  router.push(`/plan/${params.id}/votar`)
-                }}
-                className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
-              >
-                Votar de nou
-              </button>
-            )}
-
-            <button
-              onClick={() => router.push(`/plan/${params.id}/chat`)}
-              className="w-full py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium"
-            >
-              💬 Chat del grup
-            </button>
-
-          </div>
-
         </div>
       </div>
     </main>
