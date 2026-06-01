@@ -172,7 +172,7 @@ console.log('Error update avatar:', updateError)
       return
     }
 
-    router.push('/?refresh=' + Date.now())
+    window.location.href = '/'
   }
 
   if (cargandoPerfil) {
