@@ -4,13 +4,13 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Avatar } from '@/components/Avatar'
-import { useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
+//import { useSearchParams } from 'next/navigation'
+//import { Suspense } from 'react'
 
 export const dynamic = 'force-dynamic';
 
-function HomeContent() {
-  const searchParams = useSearchParams()
+export default function Home() {
+  //const searchParams = useSearchParams()
   const [planes, setPlanes] = useState<any[]>([])
   const [planesFinalitzats, setPlanesFinalitzats] = useState<any[]>([])
   const [perfil, setPerfil] = useState<any>(null)
@@ -51,7 +51,7 @@ function HomeContent() {
       setCargando(false)
     }
     cargarDatos()
-}, [refresh, searchParams])
+  }, [refresh])
 
   async function handleEliminar(planId: string) {
     if (!confirm('¿Seguro que quieres eliminar este plan?')) return
@@ -294,12 +294,5 @@ function HomeContent() {
 
       </div>
     </main>
-  )
-}
-export default function Home() {
-  return (
-    <Suspense>
-      <HomeContent />
-    </Suspense>
   )
 }
