@@ -186,11 +186,11 @@ export default function Home() {
                 {perfil?.nombre || 'amigo'}
               </span>
               <Avatar
-                src={perfil?.avatar_url}
-                nombre={perfil?.nombre}
-                size={32}
-                tipo="usuario"
-              />
+  src={perfil?.avatar_url ? `${perfil.avatar_url}?t=${Date.now()}` : null}
+  nombre={perfil?.nombre}
+  size={32}
+  tipo="usuario"
+/>
             </button>
 
             {menuAbierto && (
