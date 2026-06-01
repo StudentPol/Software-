@@ -88,21 +88,44 @@ export function AvatarUpload({
     ? `${url.split('?')[0]}?t=${cacheBuster}`
     : null
 
-  async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploading(true)
-    const result = await onUpload(file)
-    if (result) {
-      const fresh = result.split('?')[0]
-      const busted = `${fresh}?t=${Date.now()}`
-      setUrl(fresh)
-      setCacheBuster(Date.now())
-      onChange?.(fresh)
+    async function comprimirImatge(file: File): Promise<File> {
+      return new Promise((resolve) => {
+        const img = new Image()
+        const url = URL.createObjectURL(file)
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          const MAX = 800
+          let w = img.width
+          let h = img.height
+          if (w > h && w > MAX) { h = (h * MAX) / w; w = MAX }
+          else if (h > MAX) { w = (w * MAX) / h; h = MAX }
+          canvas.width = w
+          canvas.height = h
+          canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+          canvas.toBlob(blob => {
+            resolve(new File([blob!], file.name, { type: 'image/jpeg' }))
+            URL.revokeObjectURL(url)
+          }, 'image/jpeg', 0.8)
+        }
+        img.src = url
+      })
     }
-    setUploading(false)
-    e.target.value = ''
-  }
+
+    async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+      const file = e.target.files?.[0]
+      if (!file) return
+      setUploading(true)
+      const fileComprimida = await comprimirImatge(file)
+      const result = await onUpload(fileComprimida)
+      if (result) {
+        const fresh = result.split('?')[0]
+        setUrl(fresh)
+        setCacheBuster(Date.now())
+        onChange?.(fresh)
+      }
+      setUploading(false)
+      e.target.value = ''
+    }
 
   async function handleDelete(e: React.MouseEvent) {
     e.preventDefault()
