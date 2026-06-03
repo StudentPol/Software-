@@ -23,8 +23,8 @@ export async function POST(req: NextRequest) {
       }]
     }
 
-    // AHORA SÍ: Usamos gemini-pro que es la versión universal
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiKey}`, {
+    // Usamos gemini-2.0-flash: rápido, gratuito y soportado en v1beta
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
