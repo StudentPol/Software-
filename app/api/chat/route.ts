@@ -1,29 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
-
-// Asegúrate de tener OPENAI_API_KEY en tu .env.local
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
 
 export async function POST(req: NextRequest) {
   try {
+    // Obtenemos el historial de mensajes que envía el frontend
     const { messages } = await req.json()
+    const anthropicKey = process.env.ANTHROPIC_API_KEY
 
-    // Mensaje de sistema para darle contexto al bot sobre tu app Planify
-    const systemMessage = {
-      role: 'system',
-      content: 'Eres el asistente virtual de Planify, una app para planificar comidas en grupo. Ayudas a los usuarios a usar la app, crear planes, entender cómo votar y das consejos sobre restaurantes en diferentes zonas (Gràcia, Eixample, etc.). Sé amable y conciso.'
+    if (!anthropicKey) {
+      return NextResponse.json(
+        { error: "Falta la variable de entorno ANTHROPIC_API_KEY" }, 
+        { status: 500 }
+      )
     }
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // o el modelo que prefieras
-      messages: [systemMessage, ...messages],
-      temperature: 0.7,
+    // Contexto para que el bot sepa qué hacer
+    const systemMessage = 'Eres el asistente virtual de Planify, una app para planificar comidas en grupo. Ayudas a los usuarios a usar la app, crear planes, entender cómo votar y das consejos sobre restaurantes. Sé amable, conciso y responde en español.'
+
+    // Llamada directa a la API de Anthropic (Claude)
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': anthropicKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-3-haiku-20240307', // Usamos Haiku porque es muy rápido y barato para un chatbot
+        max_tokens: 500,
+        system: systemMessage,
+        messages: messages, // El frontend debe enviar un array de { role: "user" | "assistant", content: "..." }
+      }),
     })
 
-    return NextResponse.json({ message: response.choices[0].message })
+    const data = await res.json()
+
+    // Manejo de errores de la API de Anthropic
+    if (data.error) {
+      throw new Error(data.error.message)
+    }
+
+    // Devolvemos la respuesta al frontend con el mismo formato
+    return NextResponse.json({ 
+      message: { 
+        role: 'assistant', 
+        content: data.content[0].text 
+      } 
+    })
+
   } catch (error: any) {
+    console.error("Error en el chatbot:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
