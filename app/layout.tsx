@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
-import Chatbot from "@/components/Chatbot";
+import Chatbot from "../components/Chatbot";
 
 const playfair = Playfair_Display({
   variable: "--font-heading",
