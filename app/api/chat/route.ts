@@ -14,8 +14,7 @@ export async function POST(req: NextRequest) {
 
     const systemMessage = 'Eres el asistente virtual de Planify, una app para planificar comidas en grupo. Ayudas a los usuarios a usar la app, crear planes, entender cómo votar y das consejos sobre restaurantes. Sé amable, conciso y responde en español.'
 
-    // 🔴 SOLUCIÓN: Gemini exige que la conversación empiece siempre por el usuario.
-    // Si el primer mensaje del historial es el saludo del bot, lo ignoramos.
+    // 1. Ignoramos el mensaje de saludo del bot
     let mensajesValidos = messages;
     if (mensajesValidos.length > 0 && mensajesValidos[0].role === 'assistant') {
       mensajesValidos = mensajesValidos.slice(1);
@@ -37,8 +36,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Usamos el modelo gemini-1.5-flash estándar
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+    // 2. Usamos el modelo "-latest" que es el que permite tu cuenta
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -48,7 +47,6 @@ export async function POST(req: NextRequest) {
 
     const data = await res.json()
 
-    // Si Google nos devuelve un error
     if (data.error) {
       throw new Error(data.error.message)
     }
