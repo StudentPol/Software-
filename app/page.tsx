@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Avatar } from '@/components/Avatar'
-import { ThemeToggle } from '@/components/ThemeToggle'
+import { ThemeMenuItem } from '@/components/ThemeToggle'
 //import { useSearchParams } from 'next/navigation'
 //import { Suspense } from 'react'
 
@@ -177,10 +177,8 @@ export default function Home() {
               Planify
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            {/* Avatar con menú desplegable */}
-            <div className="relative" ref={menuRef}>
+          {/* Avatar con menú desplegable */}
+          <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuAbierto(v => !v)}
               className="flex items-center gap-2.5 bg-white/10 hover:bg-white/20 transition-colors rounded-2xl pl-3 pr-2 py-1.5 border-none cursor-pointer"
@@ -212,6 +210,8 @@ export default function Home() {
                     Ver perfil
                   </a>
                   <div className="border-t border-border" />
+                  <ThemeMenuItem />
+                  <div className="border-t border-border" />
                   <button
                     onClick={() => { setMenuAbierto(false); handleLogout() }}
                     className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors bg-transparent border-none cursor-pointer text-left"
@@ -222,10 +222,9 @@ export default function Home() {
                 </div>
               </>
             )}
-            </div>{/* end relative */}
-          </div>{/* end flex gap-2 */}
-        </div>{/* end max-w-3xl */}
-      </div>{/* end header */}
+          </div>
+        </div>
+      </div>
 
       {/* Hero image */}
       <div className="mb-8 -mt-6 z-0 relative">
