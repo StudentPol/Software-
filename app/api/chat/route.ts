@@ -3,31 +3,32 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(req: NextRequest) {
   try {
     const { messages } = await req.json()
-    const geminiKey = process.env.GEMINI_API_KEY
+    const groqKey = process.env.GROQ_API_KEY
 
-    if (!geminiKey) {
-      throw new Error("Falta la variable de entorno GEMINI_API_KEY en Vercel")
+    if (!groqKey) {
+      throw new Error("Falta la variable de entorno GROQ_API_KEY en Vercel")
     }
 
-    // 1. Extraemos SOLO el último mensaje que ha escrito el usuario
-    const ultimoMensaje = messages[messages.length - 1].content
+    const systemMessage = 'Eres el asistente virtual de Planify, una app para planificar comidas en grupo. Ayudas a crear planes, votar y das consejos de restaurantes. Responde en español, de forma amable y directa. Sé conciso: máximo 3-4 frases por respuesta.'
 
-    // 2. Preparamos el contexto
-    const systemMessage = 'Eres el asistente virtual de Planify, una app para planificar comidas en grupo. Ayudas a crear planes, votar y das consejos de restaurantes. Responde en español, de forma amable y directa.'
-    const promptFinal = `[Instrucciones para ti: ${systemMessage}]\n\nPregunta del usuario: ${ultimoMensaje}`
+    const historial = (messages as { role: string; content: string }[])
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .map(m => ({ role: m.role, content: m.content }))
 
-    const requestBody = {
-      contents: [{
-        role: 'user',
-        parts: [{ text: promptFinal }]
-      }]
-    }
-
-    // Usamos gemini-2.0-flash: rápido, gratuito y soportado en v1beta
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`, {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${groqKey}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant', // gratis, rápido, sin tarjeta
+        max_tokens: 500,
+        messages: [
+          { role: 'system', content: systemMessage },
+          ...historial,
+        ],
+      }),
     })
 
     const data = await res.json()
@@ -36,17 +37,13 @@ export async function POST(req: NextRequest) {
       throw new Error(data.error.message)
     }
 
-    if (!data.candidates || data.candidates.length === 0) {
-      throw new Error("Google no devolvió ninguna respuesta válida.")
-    }
+    const botReply = data.choices[0].message.content.trim()
 
-    const botReply = data.candidates[0].content.parts[0].text
-
-    return NextResponse.json({ 
-      message: { 
-        role: 'assistant', 
-        content: botReply
-      } 
+    return NextResponse.json({
+      message: {
+        role: 'assistant',
+        content: botReply,
+      }
     })
 
   } catch (error: any) {
