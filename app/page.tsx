@@ -222,11 +222,10 @@ export default function Home() {
                 </div>
               </>
             )}
-          </div>
-        </div>
-            </div>{/* end avatar */}
+            </div>{/* end relative */}
           </div>{/* end flex gap-2 */}
-      </div>
+        </div>{/* end max-w-3xl */}
+      </div>{/* end header */}
 
       {/* Hero image */}
       <div className="mb-8 -mt-6 z-0 relative">
