@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(req: NextRequest) {
   try {
     const { messages } = await req.json()
-    
-    // Ahora usamos la variable de Gemini
     const geminiKey = process.env.GEMINI_API_KEY
 
     if (!geminiKey) {
@@ -16,13 +14,18 @@ export async function POST(req: NextRequest) {
 
     const systemMessage = 'Eres el asistente virtual de Planify, una app para planificar comidas en grupo. Ayudas a los usuarios a usar la app, crear planes, entender cómo votar y das consejos sobre restaurantes. Sé amable, conciso y responde en español.'
 
-    // Gemini usa un formato un poco diferente ("model" en lugar de "assistant")
-    const formattedMessages = messages.map((msg: any) => ({
+    // 🔴 SOLUCIÓN: Gemini exige que la conversación empiece siempre por el usuario.
+    // Si el primer mensaje del historial es el saludo del bot, lo ignoramos.
+    let mensajesValidos = messages;
+    if (mensajesValidos.length > 0 && mensajesValidos[0].role === 'assistant') {
+      mensajesValidos = mensajesValidos.slice(1);
+    }
+
+    const formattedMessages = mensajesValidos.map((msg: any) => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }))
 
-    // Preparamos los datos para enviar a Google Gemini (usamos el modelo flash que es el más rápido)
     const requestBody = {
       systemInstruction: {
         parts: [{ text: systemMessage }]
@@ -34,8 +37,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Llamada gratuita a la API de Gemini
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiKey}`, {
+    // Usamos el modelo gemini-1.5-flash estándar
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -50,10 +53,8 @@ export async function POST(req: NextRequest) {
       throw new Error(data.error.message)
     }
 
-    // Extraemos la respuesta del bot
     const botReply = data.candidates[0].content.parts[0].text
 
-    // La devolvemos a tu frontend
     return NextResponse.json({ 
       message: { 
         role: 'assistant', 
