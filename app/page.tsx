@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Avatar } from '@/components/Avatar'
+import { ThemeToggle } from '@/components/ThemeToggle'
 //import { useSearchParams } from 'next/navigation'
 //import { Suspense } from 'react'
 
@@ -176,8 +177,10 @@ export default function Home() {
               Planify
             </span>
           </div>
-          {/* Avatar con menú desplegable */}
-          <div className="relative" ref={menuRef}>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            {/* Avatar con menú desplegable */}
+            <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuAbierto(v => !v)}
               className="flex items-center gap-2.5 bg-white/10 hover:bg-white/20 transition-colors rounded-2xl pl-3 pr-2 py-1.5 border-none cursor-pointer"
@@ -221,6 +224,8 @@ export default function Home() {
             )}
           </div>
         </div>
+            </div>{/* end avatar */}
+          </div>{/* end flex gap-2 */}
       </div>
 
       {/* Hero image */}
