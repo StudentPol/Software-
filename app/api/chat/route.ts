@@ -26,8 +26,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Usamos gemini-1.5-flash (el más rápido y actual)
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
-      method: 'POST',
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiKey}`, {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
     })
