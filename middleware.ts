@@ -28,16 +28,20 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname
 
-  // Rutas públicas: no requieren sesión
+  // 1. Identificamos qué tipo de ruta es
   const isAuthRoute = pathname.startsWith('/auth')
-  if (!user && !isAuthRoute) {
+  const isApiRoute = pathname.startsWith('/api') // 🔴 NUEVO: Identificamos las rutas de la API
+
+  // 2. Si no hay usuario y NO es ni ruta de Auth ni ruta de API, redirigir al login
+  if (!user && !isAuthRoute && !isApiRoute) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
-  // Si hay sesión, comprobar si el perfil está completo
-  // (excepto en la propia página de perfil y en las rutas de auth)
+  // 3. Si hay sesión, comprobar si el perfil está completo
   const isPerfilRoute = pathname.startsWith('/perfil/crear')
-  if (user && !isAuthRoute && !isPerfilRoute) {
+  
+  // 🔴 NUEVO: Añadimos !isApiRoute para que no redirija las llamadas del chatbot
+  if (user && !isAuthRoute && !isPerfilRoute && !isApiRoute) {
     const { data: perfil } = await supabase
       .from('profiles')
       .select('nombre')
