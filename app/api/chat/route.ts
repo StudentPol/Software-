@@ -14,21 +14,25 @@ export async function POST(req: NextRequest) {
 
     const systemMessage = 'Eres el asistente virtual de Planify, una app para planificar comidas en grupo. Ayudas a los usuarios a usar la app, crear planes, entender cómo votar y das consejos sobre restaurantes. Sé amable, conciso y responde en español.'
 
-    // 1. Ignoramos el mensaje de saludo del bot
+    // 1. Ignorar el saludo inicial del bot
     let mensajesValidos = messages;
     if (mensajesValidos.length > 0 && mensajesValidos[0].role === 'assistant') {
       mensajesValidos = mensajesValidos.slice(1);
     }
 
+    // 2. Cambiar 'assistant' por 'model' (que es lo que pide Gemini)
     const formattedMessages = mensajesValidos.map((msg: any) => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }))
 
+    // 3. TRUCO: Como algunas cuentas dan error con "systemInstruction", 
+    // metemos las instrucciones ocultas dentro de tu primer mensaje.
+    if (formattedMessages.length > 0 && formattedMessages[0].role === 'user') {
+      formattedMessages[0].parts[0].text = `[Instrucciones ocultas para ti: ${systemMessage}]\n\nMensaje del usuario: ${formattedMessages[0].parts[0].text}`;
+    }
+
     const requestBody = {
-      systemInstruction: {
-        parts: [{ text: systemMessage }]
-      },
       contents: formattedMessages,
       generationConfig: {
         temperature: 0.7,
@@ -36,8 +40,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Usamos el modelo "-latest" que es el que permite tu cuenta
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiKey}`, {
+    // 4. Usamos 'gemini-pro', el modelo más estable y compatible mundialmente
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -47,6 +51,7 @@ export async function POST(req: NextRequest) {
 
     const data = await res.json()
 
+    // Manejar errores que devuelva Google
     if (data.error) {
       throw new Error(data.error.message)
     }
