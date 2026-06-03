@@ -3,42 +3,61 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(req: NextRequest) {
   try {
     const { messages } = await req.json()
-    const anthropicKey = process.env.ANTHROPIC_API_KEY
+    
+    // Ahora usamos la variable de Gemini
+    const geminiKey = process.env.GEMINI_API_KEY
 
-    if (!anthropicKey) {
+    if (!geminiKey) {
       return NextResponse.json(
-        { error: "Falta la variable de entorno ANTHROPIC_API_KEY" }, 
+        { error: "Falta la variable de entorno GEMINI_API_KEY en Vercel" }, 
         { status: 500 }
       )
     }
 
     const systemMessage = 'Eres el asistente virtual de Planify, una app para planificar comidas en grupo. Ayudas a los usuarios a usar la app, crear planes, entender cómo votar y das consejos sobre restaurantes. Sé amable, conciso y responde en español.'
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    // Gemini usa un formato un poco diferente ("model" en lugar de "assistant")
+    const formattedMessages = messages.map((msg: any) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    }))
+
+    // Preparamos los datos para enviar a Google Gemini (usamos el modelo flash que es el más rápido)
+    const requestBody = {
+      systemInstruction: {
+        parts: [{ text: systemMessage }]
+      },
+      contents: formattedMessages,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 500,
+      }
+    }
+
+    // Llamada gratuita a la API de Gemini
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': anthropicKey,
-        'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify({
-        model: 'claude-3-haiku-20240307', 
-        max_tokens: 500,
-        system: systemMessage,
-        messages: messages, 
-      }),
+      body: JSON.stringify(requestBody),
     })
 
     const data = await res.json()
 
+    // Si Google nos devuelve un error
     if (data.error) {
       throw new Error(data.error.message)
     }
 
+    // Extraemos la respuesta del bot
+    const botReply = data.candidates[0].content.parts[0].text
+
+    // La devolvemos a tu frontend
     return NextResponse.json({ 
       message: { 
         role: 'assistant', 
-        content: data.content[0].text 
+        content: botReply
       } 
     })
 
